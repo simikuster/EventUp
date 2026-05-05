@@ -5,7 +5,9 @@ export default function TabLayout() {
     return (
         <Tabs
             screenOptions={({ route }) => ({
+                headerShown: false,
                 tabBarActiveTintColor: '#3B82F6',
+
                 tabBarIcon: ({ color, size }) => {
                     let iconName: keyof typeof Ionicons.glyphMap = 'star';
 

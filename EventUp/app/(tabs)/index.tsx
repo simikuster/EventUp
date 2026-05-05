@@ -1,32 +1,92 @@
-import { View, Text, StyleSheet, ScrollView, Image, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TextInput, ImageBackground, Animated, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useRef } from 'react';
 
 export default function Home() {
+
+    const scrollY = useRef(new Animated.Value(0)).current;
+    const scrollRef = useRef<ScrollView>(null);
+
+    const searchTop = scrollY.interpolate({
+        inputRange: [0, 150],
+        outputRange: [210, 40],
+        extrapolate: 'clamp',
+    });
+
+    const searchScale = scrollY.interpolate({
+        inputRange: [0, 150],
+        outputRange: [1, 0.8],
+        extrapolate: 'clamp',
+    });
+
+    const searchOpacity = scrollY.interpolate({
+        inputRange: [0, 120],
+        outputRange: [1, 0],
+        extrapolate: 'clamp',
+    });
+
+    const iconOpacity = scrollY.interpolate({
+        inputRange: [100, 150],
+        outputRange: [0, 1],
+        extrapolate: 'clamp',
+    });
+
+    const logoTranslateY = scrollY.interpolate({
+        inputRange: [0, 200],
+        outputRange: [0, -250],
+        extrapolate: 'clamp',
+    });
+
+    const scrollToTop = () => {
+        scrollRef.current?.scrollTo({ y: 0, animated: true });
+    };
+
     return (
         <View style={styles.container}>
 
-            {/* 🔵 HEADER */}
-            <View style={styles.header}>
-                <Image
+            <Animated.View style={{ transform: [{ translateY: logoTranslateY }] }}>
+                <ImageBackground
                     source={require('../../assets/images/logo.png')}
-                    style={styles.logo}
-                    resizeMode="contain"
+                    style={styles.header}
+                    resizeMode="cover"
                 />
-            </View>
+            </Animated.View>
 
-            {/* 🔍 FLOATING SEARCHBAR */}
-            <View style={styles.searchWrapper}>
+            <Animated.View style={[
+                styles.searchWrapper,
+                {
+                    top: searchTop,
+                    transform: [{ scale: searchScale }],
+                    opacity: searchOpacity
+                }
+            ]}>
                 <View style={styles.searchBox}>
+                    <Ionicons name="search" size={20} color="#888" style={styles.icon} />
                     <TextInput
                         placeholder="Nach Events suchen"
                         placeholderTextColor="#888"
+                        style={styles.input}
                     />
                 </View>
-            </View>
+            </Animated.View>
 
-            {/* 📜 SCROLL CONTENT */}
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            <Animated.View style={[styles.topIcon, { opacity: iconOpacity }]}>
+                <TouchableOpacity style={styles.iconButton} onPress={scrollToTop}>
+                    <Ionicons name="search" size={20} color="#000" />
+                </TouchableOpacity>
+            </Animated.View>
 
-                {/* 🔥 FÜR DICH */}
+            <Animated.ScrollView
+                ref={scrollRef}
+                style={styles.content}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingTop: 110 }} // 🔥 FIX (kein grosser leerer Block mehr)
+                onScroll={Animated.event(
+                    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                    { useNativeDriver: false }
+                )}
+            >
+
                 <Text style={styles.sectionTitle}>Für Dich</Text>
 
                 <View style={styles.card}>
@@ -41,7 +101,6 @@ export default function Home() {
                     </View>
                 </View>
 
-                {/* 🔥 TRENDS */}
                 <Text style={styles.sectionTitle}>Trends</Text>
 
                 <View style={styles.row}>
@@ -62,7 +121,6 @@ export default function Home() {
                     </View>
                 </View>
 
-                {/* 🔥 EVENTS */}
                 <Text style={styles.sectionTitle}>Events Entdecken</Text>
 
                 {[1, 2, 3].map((item) => (
@@ -79,7 +137,7 @@ export default function Home() {
                     </View>
                 ))}
 
-            </ScrollView>
+            </Animated.ScrollView>
         </View>
     );
 }
@@ -91,21 +149,13 @@ const styles = StyleSheet.create({
     },
 
     header: {
-        height: 180,
-        backgroundColor: '#87CEEB',
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingTop: 50,
-    },
-
-    logo: {
-        width: 220,
-        height: 90,
+        height: 240,
+        width: '100%',
     },
 
     searchWrapper: {
         position: 'absolute',
-        top: 150,
+        top: 210,
         width: '100%',
         alignItems: 'center',
         zIndex: 10,
@@ -114,17 +164,38 @@ const styles = StyleSheet.create({
     searchBox: {
         width: '85%',
         backgroundColor: '#fff',
-        padding: 12,
+        paddingHorizontal: 15,
+        paddingVertical: 10,
         borderRadius: 25,
+        flexDirection: 'row',
+        alignItems: 'center',
         elevation: 4,
         shadowColor: '#000',
         shadowOpacity: 0.1,
         shadowRadius: 5,
     },
 
+    topIcon: {
+        position: 'absolute',
+        top: 50,
+        left: 20,
+        zIndex: 20,
+    },
+
+    iconButton: {
+        padding: 6,
+    },
+
+    icon: {
+        marginRight: 8,
+    },
+
+    input: {
+        flex: 1,
+    },
+
     content: {
-        marginTop: 60,
-        paddingTop: 20,
+        marginTop: 0,
     },
 
     sectionTitle: {
