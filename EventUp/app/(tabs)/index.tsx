@@ -1,22 +1,187 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TextInput } from 'react-native';
 
-export default function HomeScreen() {
-  return (
-      <View style={styles.container}>
-        <Text style={styles.text}>Hallo Welt</Text>
-        <Text>Lernzapp läuft!</Text>
-      </View>
-  );
+export default function Home() {
+    return (
+        <View style={styles.container}>
+
+            {/* 🔵 HEADER */}
+            <View style={styles.header}>
+                <Image
+                    source={require('../../assets/images/logo.png')}
+                    style={styles.logo}
+                    resizeMode="contain"
+                />
+            </View>
+
+            {/* 🔍 FLOATING SEARCHBAR */}
+            <View style={styles.searchWrapper}>
+                <View style={styles.searchBox}>
+                    <TextInput
+                        placeholder="Nach Events suchen"
+                        placeholderTextColor="#888"
+                    />
+                </View>
+            </View>
+
+            {/* 📜 SCROLL CONTENT */}
+            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+
+                {/* 🔥 FÜR DICH */}
+                <Text style={styles.sectionTitle}>Für Dich</Text>
+
+                <View style={styles.card}>
+                    <Image
+                        source={{ uri: 'https://images.unsplash.com/photo-1506157786151-b8491531f063' }}
+                        style={styles.image}
+                    />
+                    <View style={styles.cardContent}>
+                        <Text style={styles.title}>Sommernachtfestival</Text>
+                        <Text style={styles.subtitle}>Kirchplatz Andwil</Text>
+                        <Text style={styles.subtitle}>Sa, 27.06 / 20:00 Uhr</Text>
+                    </View>
+                </View>
+
+                {/* 🔥 TRENDS */}
+                <Text style={styles.sectionTitle}>Trends</Text>
+
+                <View style={styles.row}>
+                    <View style={styles.smallCard}>
+                        <Image
+                            source={{ uri: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745' }}
+                            style={styles.smallImage}
+                        />
+                        <Text style={styles.smallTitle}>Beat & Bass Night</Text>
+                    </View>
+
+                    <View style={styles.smallCard}>
+                        <Image
+                            source={{ uri: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4' }}
+                            style={styles.smallImage}
+                        />
+                        <Text style={styles.smallTitle}>Open Mic Night</Text>
+                    </View>
+                </View>
+
+                {/* 🔥 EVENTS */}
+                <Text style={styles.sectionTitle}>Events Entdecken</Text>
+
+                {[1, 2, 3].map((item) => (
+                    <View key={item} style={styles.card}>
+                        <Image
+                            source={{ uri: 'https://images.unsplash.com/photo-1521336575822-6da63fb45455' }}
+                            style={styles.image}
+                        />
+                        <View style={styles.cardContent}>
+                            <Text style={styles.title}>Event {item}</Text>
+                            <Text style={styles.subtitle}>Ort</Text>
+                            <Text style={styles.subtitle}>Datum</Text>
+                        </View>
+                    </View>
+                ))}
+
+            </ScrollView>
+        </View>
+    );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  text: {
-    fontSize: 28,
-    fontWeight: 'bold',
-  },
+    container: {
+        flex: 1,
+        backgroundColor: '#f2f2f2',
+    },
+
+    header: {
+        height: 180,
+        backgroundColor: '#87CEEB',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingTop: 50,
+    },
+
+    logo: {
+        width: 220,
+        height: 90,
+    },
+
+    searchWrapper: {
+        position: 'absolute',
+        top: 150,
+        width: '100%',
+        alignItems: 'center',
+        zIndex: 10,
+    },
+
+    searchBox: {
+        width: '85%',
+        backgroundColor: '#fff',
+        padding: 12,
+        borderRadius: 25,
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowRadius: 5,
+    },
+
+    content: {
+        marginTop: 60,
+        paddingTop: 20,
+    },
+
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginLeft: 15,
+        marginTop: 10,
+    },
+
+    card: {
+        backgroundColor: '#fff',
+        margin: 15,
+        borderRadius: 12,
+        overflow: 'hidden',
+        elevation: 3,
+    },
+
+    image: {
+        width: '100%',
+        height: 180,
+    },
+
+    cardContent: {
+        padding: 10,
+    },
+
+    title: {
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+
+    subtitle: {
+        color: '#666',
+    },
+
+    row: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginHorizontal: 15,
+    },
+
+    smallCard: {
+        width: '48%',
+        backgroundColor: '#fff',
+        borderRadius: 10,
+        overflow: 'hidden',
+        elevation: 2,
+    },
+
+    smallImage: {
+        width: '100%',
+        height: 100,
+    },
+
+    smallTitle: {
+        padding: 8,
+        fontSize: 13,
+        fontWeight: '500',
+    },
 });
