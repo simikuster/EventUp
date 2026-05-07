@@ -15,10 +15,41 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+        <Stack.Screen
+          name="(tabs)"
+          options={{
+            headerShown: false,
+          }}
+        />
+
+        <Stack.Screen
+          name="EventEinrichten"
+          options={{
+            title: 'Event einrichten',
+            headerBackTitle: 'Mehr',
+            headerTintColor: '#111111',
+            headerStyle: {
+              backgroundColor: '#FFFFFF',
+            },
+            headerTitleStyle: {
+              fontWeight: '700',
+              fontSize: 18,
+              color: '#111111',
+            },
+            headerShadowVisible: false,
+          }}
+        />
+
+        <Stack.Screen
+          name="modal"
+          options={{
+            presentation: 'modal',
+            title: 'Modal',
+          }}
+        />
       </Stack>
-      <StatusBar style="auto" />
+
+      <StatusBar style="dark" />
     </ThemeProvider>
   );
 }
