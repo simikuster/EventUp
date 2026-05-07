@@ -1,8 +1,29 @@
 import { View, Text, StyleSheet, ScrollView, Image, TextInput, ImageBackground, Animated, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRef } from 'react';
+import { db } from '@/firebaseConfig';
+import { ref, onValue } from 'firebase/database';
+import { useEffect, useState } from 'react';
 
 export default function Home() {
+    const [events, setEvents] = useState<any[]>([]);
+    useEffect(() => {
+        const eventsRef = ref(db, 'events');
+
+        onValue(eventsRef, (snapshot) => {
+            const data = snapshot.val();
+
+            if (data) {
+                const loadedEvents = Object.keys(data).map((key) => ({
+                    id: key,
+                    ...data[key],
+                }));
+
+                setEvents(loadedEvents);
+                console.log("🔥 CLEAN DATA:", loadedEvents);
+            }
+        });
+    }, []);
 
     const scrollY = useRef(new Animated.Value(0)).current;
     const scrollRef = useRef<ScrollView>(null);
@@ -123,16 +144,17 @@ export default function Home() {
 
                 <Text style={styles.sectionTitle}>Events Entdecken</Text>
 
-                {[1, 2, 3].map((item) => (
-                    <View key={item} style={styles.card}>
+                {events.map((item) => (
+                    <View key={item.id} style={styles.card}>
                         <Image
-                            source={{ uri: 'https://images.unsplash.com/photo-1521336575822-6da63fb45455' }}
+                            source={{ uri: item.image }}
                             style={styles.image}
                         />
+
                         <View style={styles.cardContent}>
-                            <Text style={styles.title}>Event {item}</Text>
-                            <Text style={styles.subtitle}>Ort</Text>
-                            <Text style={styles.subtitle}>Datum</Text>
+                            <Text style={styles.title}>{item.title}</Text>
+                            <Text style={styles.subtitle}>{item.location}</Text>
+                            <Text style={styles.subtitle}>{item.date}</Text>
                         </View>
                     </View>
                 ))}
