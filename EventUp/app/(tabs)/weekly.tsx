@@ -269,9 +269,6 @@ export default function Weekly() {
                 <View style={styles.header}>
                     <Text style={styles.headerKicker}>EVENTUP</Text>
                     <Text style={styles.headerTitle}>Weekly</Text>
-                    <Text style={styles.headerSubtitle}>
-                        Bewerte vergangene Events. Nach 7 Tagen verschwinden sie automatisch.
-                    </Text>
                 </View>
 
                 <View style={styles.section}>
