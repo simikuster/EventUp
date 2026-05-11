@@ -17,6 +17,7 @@ import { useEffect, useState } from 'react';
 
 import { db, auth } from '@/firebaseConfig';
 import { ref, onValue } from 'firebase/database';
+import { router } from 'expo-router';
 
 const fallbackImage = 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30';
 
@@ -82,6 +83,19 @@ export default function Saved() {
         } catch (error) {
             Alert.alert('Fehler', 'Das Event konnte nicht geteilt werden.');
         }
+    };
+
+    const goToDetail = (item: any) => {
+        router.push({
+            pathname: '/detail',
+            params: {
+                title: item.title,
+                image: getEventImage(item),
+                location: item.location,
+                date: getEventDate(item),
+                category: getEventCategory(item),
+            },
+        });
     };
 
     const filters: Array<'Heute' | 'Diese Woche' | 'Wochenende' | 'Alle'> = [
@@ -255,7 +269,12 @@ export default function Saved() {
                 )}
 
                 {filteredSavedEvents.map((item) => (
-                    <View key={item.id} style={styles.card}>
+                    <TouchableOpacity
+                        key={item.id}
+                        style={styles.card}
+                        activeOpacity={0.9}
+                        onPress={() => goToDetail(item)}
+                    >
                         <Image source={{ uri: getEventImage(item) }} style={styles.image} />
                         <LinearGradient
                             colors={['transparent', 'rgba(0,0,0,0.65)']}
@@ -279,16 +298,19 @@ export default function Saved() {
                                     <Text style={styles.infoText}>{getEventDate(item)}</Text>
                                 </View>
                             </View>
-                            <TouchableOpacity
-                                style={styles.shareButton}
-                                activeOpacity={0.85}
-                                onPress={() => shareEvent(item)}
-                            >
-                                <Ionicons name="share-social-outline" size={16} color="#00c6ff" />
-                                <Text style={styles.shareText}>Teilen</Text>
-                            </TouchableOpacity>
+                           <TouchableOpacity
+                               style={styles.shareButton}
+                               activeOpacity={0.85}
+                               onPress={(e) => {
+                                   e.stopPropagation();
+                                   shareEvent(item);
+                               }}
+                           >
+                               <Ionicons name="share-social-outline" size={16} color="#00c6ff" />
+                               <Text style={styles.shareText}>Teilen</Text>
+                           </TouchableOpacity>
                         </View>
-                    </View>
+                    </TouchableOpacity>
                 ))}
             </ScrollView>
         </View>
