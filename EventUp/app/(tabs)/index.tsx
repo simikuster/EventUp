@@ -1,5 +1,3 @@
-// 🔥 HOME SCREEN — EventUp Modern UI
-
 import {
     View,
     Text,
@@ -343,7 +341,7 @@ export default function Home() {
 
                 <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>Für Dich</Text>
-                    <TouchableOpacity>
+                    <TouchableOpacity onPress={() => router.push('/(tabs)/events')}>
                         <Text style={styles.sectionLink}>Alle sehen</Text>
                     </TouchableOpacity>
                 </View>
