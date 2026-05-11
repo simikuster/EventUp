@@ -3,7 +3,7 @@
     "name": "EventUp",
     "slug": "EventUp",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.svg",
     "scheme": "eventup",
     "userInterfaceStyle": "automatic",

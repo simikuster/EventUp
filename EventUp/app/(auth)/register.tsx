@@ -1,16 +1,32 @@
 // 🔥 REGISTER SCREEN — EventUp Style
 
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
+import {
+    View,
+    Text,
+    TextInput,
+    StyleSheet,
+    TouchableOpacity,
+    StatusBar,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    useWindowDimensions,
+} from 'react-native';
+
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/firebaseConfig';
 import { ref, set } from 'firebase/database';
-import { db } from '@/firebaseConfig';
+
+import { auth, db } from '@/firebaseConfig';
 
 export default function Register() {
     const router = useRouter();
+    const { width, height } = useWindowDimensions();
+
+    const isLandscape = width > height;
+    const isTablet = Math.min(width, height) >= 600;
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -25,104 +41,144 @@ export default function Register() {
                 createdAt: new Date().toISOString(),
             });
 
-            alert("Account erstellt!");
+            alert('Account erstellt!');
             router.replace('/(auth)/login');
-
         } catch (error: any) {
             alert(error.message);
         }
     };
 
     return (
-        <View style={styles.container}>
+        <KeyboardAvoidingView
+            style={styles.container}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
             <StatusBar barStyle="light-content" />
 
-            {/* 🎨 HEADER GRADIENT */}
-            <LinearGradient
-                colors={['#00c6ff', '#0a7abf', '#0a0d14']}
-                start={{ x: 0.2, y: 0 }}
-                end={{ x: 0.8, y: 1 }}
-                style={styles.header}
+            <ScrollView
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={[
+                    styles.scrollContent,
+                    isLandscape && styles.scrollContentLandscape,
+                ]}
             >
-                <View style={styles.headerContent}>
-                    <Text style={styles.logo}>
-                        EVENT<Text style={styles.logoAccent}>UP</Text>
-                    </Text>
-                    <Text style={styles.tagline}>DA WO WAS LÄUFT</Text>
-                </View>
-            </LinearGradient>
-
-            {/* 📋 FORM CARD */}
-            <View style={styles.card}>
-
-                <Text style={styles.welcomeTitle}>Account erstellen 🚀</Text>
-                <Text style={styles.welcomeSubtitle}>Kostenlos registrieren & Events entdecken</Text>
-
-                {/* 📧 EMAIL */}
-                <View style={styles.formGroup}>
-                    <Text style={styles.label}>E-MAIL</Text>
-                    <View style={styles.inputWrapper}>
-                        <Text style={styles.inputIcon}>✉</Text>
-                        <TextInput
-                            placeholder="dein@email.com"
-                            placeholderTextColor="rgba(255,255,255,0.3)"
-                            value={email}
-                            onChangeText={setEmail}
-                            style={styles.input}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                        />
-                    </View>
-                </View>
-
-                {/* 🔒 PASSWORT */}
-                <View style={styles.formGroup}>
-                    <Text style={styles.label}>PASSWORT</Text>
-                    <View style={styles.inputWrapper}>
-                        <Text style={styles.inputIcon}>🔒</Text>
-                        <TextInput
-                            placeholder="••••••••"
-                            placeholderTextColor="rgba(255,255,255,0.3)"
-                            value={password}
-                            onChangeText={setPassword}
-                            secureTextEntry
-                            style={styles.input}
-                        />
-                    </View>
-                </View>
-
-                {/* 🔘 REGISTER BUTTON */}
-                <TouchableOpacity onPress={handleRegister} activeOpacity={0.85}>
+                <View
+                    style={[
+                        styles.layout,
+                        isLandscape && styles.layoutLandscape,
+                        isTablet && styles.layoutTablet,
+                    ]}
+                >
                     <LinearGradient
-                        colors={['#00c6ff', '#0072ff']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.button}
+                        colors={['#00c6ff', '#0a7abf', '#0a0d14']}
+                        start={{ x: 0.2, y: 0 }}
+                        end={{ x: 0.8, y: 1 }}
+                        style={[
+                            styles.header,
+                            isLandscape && styles.headerLandscape,
+                        ]}
                     >
-                        <Text style={styles.buttonText}>Account erstellen</Text>
+                        <View style={styles.headerContent}>
+                            <Text
+                                style={[
+                                    styles.logo,
+                                    isLandscape && styles.logoLandscape,
+                                    isTablet && styles.logoTablet,
+                                ]}
+                            >
+                                EVENT<Text style={styles.logoAccent}>UP</Text>
+                            </Text>
+
+                            <Text style={styles.tagline}>
+                                DA WO WAS LÄUFT
+                            </Text>
+                        </View>
                     </LinearGradient>
-                </TouchableOpacity>
 
-                {/* ─── DIVIDER ─── */}
-                <View style={styles.divider}>
-                    <View style={styles.dividerLine} />
-                    <Text style={styles.dividerText}>oder</Text>
-                    <View style={styles.dividerLine} />
-                </View>
-
-                {/* 🔗 ZUM LOGIN */}
-                <Text style={styles.bottomText}>
-                    Bereits registriert?{' '}
-                    <Text
-                        style={styles.link}
-                        onPress={() => router.back()}
+                    <View
+                        style={[
+                            styles.card,
+                            isLandscape && styles.cardLandscape,
+                        ]}
                     >
-                        Zum Login
-                    </Text>
-                </Text>
+                        <View style={styles.formMaxWidth}>
+                            <Text style={styles.welcomeTitle}>
+                                Account erstellen 🚀
+                            </Text>
 
-            </View>
-        </View>
+                            <Text style={styles.welcomeSubtitle}>
+                                Kostenlos registrieren & Events entdecken
+                            </Text>
+
+                            <View style={styles.formGroup}>
+                                <Text style={styles.label}>E-MAIL</Text>
+
+                                <View style={styles.inputWrapper}>
+                                    <Text style={styles.inputIcon}>✉</Text>
+
+                                    <TextInput
+                                        placeholder="dein@email.com"
+                                        placeholderTextColor="rgba(255,255,255,0.3)"
+                                        value={email}
+                                        onChangeText={setEmail}
+                                        style={styles.input}
+                                        keyboardType="email-address"
+                                        autoCapitalize="none"
+                                    />
+                                </View>
+                            </View>
+
+                            <View style={styles.formGroup}>
+                                <Text style={styles.label}>PASSWORT</Text>
+
+                                <View style={styles.inputWrapper}>
+                                    <Text style={styles.inputIcon}>🔒</Text>
+
+                                    <TextInput
+                                        placeholder="••••••••"
+                                        placeholderTextColor="rgba(255,255,255,0.3)"
+                                        value={password}
+                                        onChangeText={setPassword}
+                                        secureTextEntry
+                                        style={styles.input}
+                                    />
+                                </View>
+                            </View>
+
+                            <TouchableOpacity onPress={handleRegister} activeOpacity={0.85}>
+                                <LinearGradient
+                                    colors={['#00c6ff', '#0072ff']}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                    style={styles.button}
+                                >
+                                    <Text style={styles.buttonText}>
+                                        Account erstellen
+                                    </Text>
+                                </LinearGradient>
+                            </TouchableOpacity>
+
+                            <View style={styles.divider}>
+                                <View style={styles.dividerLine} />
+                                <Text style={styles.dividerText}>oder</Text>
+                                <View style={styles.dividerLine} />
+                            </View>
+
+                            <Text style={styles.bottomText}>
+                                Bereits registriert?{' '}
+                                <Text
+                                    style={styles.link}
+                                    onPress={() => router.back()}
+                                >
+                                    Zum Login
+                                </Text>
+                            </Text>
+                        </View>
+                    </View>
+                </View>
+            </ScrollView>
+        </KeyboardAvoidingView>
     );
 }
 
@@ -132,16 +188,50 @@ const styles = StyleSheet.create({
         backgroundColor: '#0a0d14',
     },
 
-    // ── HEADER ──
+    scrollContent: {
+        flexGrow: 1,
+        backgroundColor: '#0a0d14',
+    },
+
+    scrollContentLandscape: {
+        minHeight: '100%',
+    },
+
+    layout: {
+        flex: 1,
+        backgroundColor: '#0a0d14',
+    },
+
+    layoutLandscape: {
+        flexDirection: 'row',
+        minHeight: 420,
+    },
+
+    layoutTablet: {
+        alignSelf: 'center',
+        width: '100%',
+    },
+
     header: {
         height: 240,
         justifyContent: 'flex-end',
         alignItems: 'center',
         paddingBottom: 32,
     },
+
+    headerLandscape: {
+        height: '100%',
+        width: '42%',
+        minHeight: 420,
+        justifyContent: 'center',
+        paddingBottom: 0,
+    },
+
     headerContent: {
         alignItems: 'center',
+        paddingHorizontal: 20,
     },
+
     logo: {
         fontSize: 44,
         fontWeight: '900',
@@ -150,17 +240,27 @@ const styles = StyleSheet.create({
         fontStyle: 'italic',
         textTransform: 'uppercase',
     },
+
+    logoLandscape: {
+        fontSize: 34,
+    },
+
+    logoTablet: {
+        fontSize: 52,
+    },
+
     logoAccent: {
         color: '#00e5ff',
     },
+
     tagline: {
         fontSize: 10,
         color: 'rgba(255,255,255,0.55)',
         letterSpacing: 4,
         marginTop: 4,
+        textAlign: 'center',
     },
 
-    // ── CARD ──
     card: {
         flex: 1,
         backgroundColor: '#0a0d14',
@@ -169,6 +269,25 @@ const styles = StyleSheet.create({
         marginTop: -24,
         paddingHorizontal: 28,
         paddingTop: 36,
+        paddingBottom: 36,
+    },
+
+    cardLandscape: {
+        marginTop: 0,
+        borderTopLeftRadius: 0,
+        borderTopRightRadius: 0,
+        borderTopLeftRadius: 34,
+        borderBottomLeftRadius: 34,
+        justifyContent: 'center',
+        paddingHorizontal: 34,
+        paddingTop: 28,
+        paddingBottom: 28,
+    },
+
+    formMaxWidth: {
+        width: '100%',
+        maxWidth: 520,
+        alignSelf: 'center',
     },
 
     welcomeTitle: {
@@ -177,16 +296,17 @@ const styles = StyleSheet.create({
         color: '#fff',
         marginBottom: 6,
     },
+
     welcomeSubtitle: {
         fontSize: 14,
         color: 'rgba(255,255,255,0.45)',
-        marginBottom: 32,
+        marginBottom: 28,
     },
 
-    // ── FORM ──
     formGroup: {
-        marginBottom: 20,
+        marginBottom: 18,
     },
+
     label: {
         fontSize: 11,
         color: 'rgba(255,255,255,0.45)',
@@ -194,6 +314,7 @@ const styles = StyleSheet.create({
         marginBottom: 10,
         fontWeight: '600',
     },
+
     inputWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -205,10 +326,12 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
         gap: 12,
     },
+
     inputIcon: {
         fontSize: 16,
         opacity: 0.4,
     },
+
     input: {
         flex: 1,
         color: '#fff',
@@ -216,14 +339,14 @@ const styles = StyleSheet.create({
         padding: 0,
     },
 
-    // ── BUTTON ──
     button: {
         borderRadius: 16,
         paddingVertical: 17,
         alignItems: 'center',
         marginTop: 8,
-        marginBottom: 28,
+        marginBottom: 26,
     },
+
     buttonText: {
         color: '#fff',
         fontWeight: '700',
@@ -231,29 +354,30 @@ const styles = StyleSheet.create({
         letterSpacing: 0.5,
     },
 
-    // ── DIVIDER ──
     divider: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 24,
+        marginBottom: 22,
         gap: 12,
     },
+
     dividerLine: {
         flex: 1,
         height: 1,
         backgroundColor: 'rgba(255,255,255,0.08)',
     },
+
     dividerText: {
         color: 'rgba(255,255,255,0.3)',
         fontSize: 13,
     },
 
-    // ── BOTTOM ──
     bottomText: {
         textAlign: 'center',
         color: 'rgba(255,255,255,0.4)',
         fontSize: 14,
     },
+
     link: {
         color: '#00c6ff',
         fontWeight: '700',

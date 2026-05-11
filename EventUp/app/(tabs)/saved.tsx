@@ -8,6 +8,7 @@ import {
     Share,
     Alert,
     StatusBar,
+    useWindowDimensions,
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +25,11 @@ import { isEventVisibleInNormalPages } from '@/utils/eventDateUtils';
 const fallbackImage = 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30';
 
 export default function Saved() {
+    const { width, height } = useWindowDimensions();
+
+    const isLandscape = width > height;
+    const isTablet = Math.min(width, height) >= 600;
+    const compact = isLandscape && !isTablet;
 
     const [savedEvents, setSavedEvents] = useState<any[]>([]);
     const [activeFilter, setActiveFilter] = useState<'Heute' | 'Diese Woche' | 'Wochenende' | 'Alle'>('Alle');
@@ -252,66 +258,84 @@ export default function Saved() {
         <View style={styles.container}>
             <StatusBar barStyle="light-content" />
 
-            <View style={styles.header}>
-                <View>
-                    <Text style={styles.headerKicker}>EVENTUP</Text>
-                    <Text style={styles.title}>Meine Events</Text>
-                </View>
-
-                <View style={styles.headerIcon}>
-                    <Ionicons name="bookmark" size={24} color="#00e5ff" />
-                </View>
-            </View>
-
-            <View style={styles.filterWrapper}>
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.filterRow}
-                >
-                    {filters.map((filter) => {
-                        const isActive = activeFilter === filter;
-
-                        return (
-                            <TouchableOpacity
-                                key={filter}
-                                activeOpacity={0.85}
-                                onPress={() => setActiveFilter(filter)}
-                            >
-                                {isActive ? (
-                                    <LinearGradient
-                                        colors={['#00c6ff', '#0072ff']}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 0 }}
-                                        style={styles.activeFilter}
-                                    >
-                                        <Text style={styles.activeFilterText}>
-                                            {filter}
-                                        </Text>
-                                    </LinearGradient>
-                                ) : (
-                                    <View style={styles.filterButton}>
-                                        <Text style={styles.filterText}>
-                                            {filter}
-                                        </Text>
-                                    </View>
-                                )}
-                            </TouchableOpacity>
-                        );
-                    })}
-                </ScrollView>
-            </View>
-
             <ScrollView
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.scrollContent}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={[
+                    styles.pageScrollContent,
+                    compact && styles.pageScrollContentCompact,
+                ]}
             >
+                {/* HEADER */}
+                <View style={[styles.header, compact && styles.headerCompact]}>
+                    <View>
+                        <Text style={styles.headerKicker}>EVENTUP</Text>
+
+                        <Text style={[styles.title, compact && styles.titleCompact]}>
+                            Meine Events
+                        </Text>
+                    </View>
+
+                    <View style={[styles.headerIcon, compact && styles.headerIconCompact]}>
+                        <Ionicons name="bookmark" size={compact ? 21 : 24} color="#00e5ff" />
+                    </View>
+                </View>
+
+                {/* FILTERS */}
+                <View style={[styles.filterWrapper, compact && styles.filterWrapperCompact]}>
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.filterRow}
+                    >
+                        {filters.map((filter) => {
+                            const isActive = activeFilter === filter;
+
+                            return (
+                                <TouchableOpacity
+                                    key={filter}
+                                    activeOpacity={0.85}
+                                    onPress={() => setActiveFilter(filter)}
+                                >
+                                    {isActive ? (
+                                        <LinearGradient
+                                            colors={['#00c6ff', '#0072ff']}
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 0 }}
+                                            style={[
+                                                styles.activeFilter,
+                                                compact && styles.filterCompact,
+                                            ]}
+                                        >
+                                            <Text style={styles.activeFilterText}>
+                                                {filter}
+                                            </Text>
+                                        </LinearGradient>
+                                    ) : (
+                                        <View
+                                            style={[
+                                                styles.filterButton,
+                                                compact && styles.filterCompact,
+                                            ]}
+                                        >
+                                            <Text style={styles.filterText}>
+                                                {filter}
+                                            </Text>
+                                        </View>
+                                    )}
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </ScrollView>
+                </View>
+
+                {/* EMPTY */}
                 {filteredSavedEvents.length === 0 && (
-                    <View style={styles.emptyContainer}>
-                        <View style={styles.emptyIconCircle}>
+                    <View style={[styles.emptyContainer, compact && styles.emptyContainerCompact]}>
+                        <View style={[styles.emptyIconCircle, compact && styles.emptyIconCircleCompact]}>
                             <Ionicons
                                 name="bookmark-outline"
-                                size={52}
+                                size={compact ? 42 : 52}
                                 color="rgba(255,255,255,0.22)"
                             />
                         </View>
@@ -326,21 +350,22 @@ export default function Saved() {
                     </View>
                 )}
 
+                {/* EVENTS */}
                 {filteredSavedEvents.map((item) => (
                     <TouchableOpacity
                         key={item.id}
-                        style={styles.card}
+                        style={[styles.card, compact && styles.cardCompact]}
                         activeOpacity={0.9}
                         onPress={() => goToDetail(item)}
                     >
                         <Image
                             source={{ uri: getEventImage(item) }}
-                            style={styles.image}
+                            style={[styles.image, compact && styles.imageCompact]}
                         />
 
                         <LinearGradient
                             colors={['transparent', 'rgba(0,0,0,0.65)']}
-                            style={styles.imageGradient}
+                            style={[styles.imageGradient, compact && styles.imageGradientCompact]}
                         />
 
                         <TouchableOpacity
@@ -426,8 +451,19 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#0a0d14',
-        paddingTop: 62,
     },
+
+    pageScrollContent: {
+        paddingTop: 62,
+        paddingBottom: 120,
+    },
+
+    pageScrollContentCompact: {
+        paddingTop: 26,
+        paddingBottom: 60,
+    },
+
+    // ── HEADER ──
 
     header: {
         flexDirection: 'row',
@@ -435,6 +471,10 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
         paddingHorizontal: 20,
         marginBottom: 22,
+    },
+
+    headerCompact: {
+        marginBottom: 12,
     },
 
     headerKicker: {
@@ -452,11 +492,8 @@ const styles = StyleSheet.create({
         letterSpacing: -1,
     },
 
-    subtitle: {
-        color: 'rgba(255,255,255,0.45)',
-        fontSize: 14,
-        marginTop: 4,
-        maxWidth: 260,
+    titleCompact: {
+        fontSize: 30,
     },
 
     headerIcon: {
@@ -471,15 +508,24 @@ const styles = StyleSheet.create({
         marginTop: 4,
     },
 
+    headerIconCompact: {
+        width: 40,
+        height: 40,
+    },
+
+    // ── FILTERS ──
+
     filterWrapper: {
-        height: 56,
-        marginBottom: 6,
+        marginBottom: 18,
+    },
+
+    filterWrapperCompact: {
+        marginBottom: 10,
     },
 
     filterRow: {
         paddingHorizontal: 20,
         gap: 10,
-        marginBottom: 22,
     },
 
     filterButton: {
@@ -489,6 +535,11 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255,255,255,0.06)',
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
+    },
+
+    filterCompact: {
+        paddingVertical: 8,
+        paddingHorizontal: 14,
     },
 
     filterText: {
@@ -509,9 +560,7 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
 
-    scrollContent: {
-        paddingBottom: 120,
-    },
+    // ── EMPTY ──
 
     emptyContainer: {
         alignItems: 'center',
@@ -524,6 +573,11 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255,255,255,0.08)',
     },
 
+    emptyContainerCompact: {
+        marginTop: 24,
+        padding: 24,
+    },
+
     emptyIconCircle: {
         width: 92,
         height: 92,
@@ -533,6 +587,11 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255,255,255,0.08)',
         justifyContent: 'center',
         alignItems: 'center',
+    },
+
+    emptyIconCircleCompact: {
+        width: 74,
+        height: 74,
     },
 
     emptyTitle: {
@@ -550,6 +609,8 @@ const styles = StyleSheet.create({
         lineHeight: 20,
     },
 
+    // ── CARD ──
+
     card: {
         marginHorizontal: 20,
         marginBottom: 18,
@@ -560,10 +621,18 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255,255,255,0.08)',
     },
 
+    cardCompact: {
+        marginBottom: 14,
+    },
+
     image: {
         width: '100%',
         height: 175,
         backgroundColor: 'rgba(255,255,255,0.06)',
+    },
+
+    imageCompact: {
+        height: 145,
     },
 
     imageGradient: {
@@ -572,6 +641,10 @@ const styles = StyleSheet.create({
         right: 0,
         top: 0,
         height: 175,
+    },
+
+    imageGradientCompact: {
+        height: 145,
     },
 
     bookmark: {
@@ -633,6 +706,8 @@ const styles = StyleSheet.create({
         color: 'rgba(255,255,255,0.5)',
         fontSize: 13,
     },
+
+    // ── SHARE ──
 
     shareButton: {
         position: 'absolute',

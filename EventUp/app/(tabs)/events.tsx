@@ -9,6 +9,7 @@ import {
     Share,
     Alert,
     StatusBar,
+    useWindowDimensions,
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -25,6 +26,11 @@ import { isEventVisibleInNormalPages } from '@/utils/eventDateUtils';
 const fallbackImage = 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30';
 
 export default function Events() {
+    const { width, height } = useWindowDimensions();
+
+    const isLandscape = width > height;
+    const isTablet = Math.min(width, height) >= 600;
+    const compact = isLandscape && !isTablet;
 
     const [events, setEvents] = useState<any[]>([]);
     const [savedEvents, setSavedEvents] = useState<any>({});
@@ -248,8 +254,10 @@ export default function Events() {
     const renderFilterContent = () => {
         if (activeFilter === 'date') {
             return (
-                <View style={styles.filterPanel}>
-                    <Text style={styles.filterPanelTitle}>Datum auswählen</Text>
+                <View style={[styles.filterPanel, compact && styles.filterPanelCompact]}>
+                    <Text style={[styles.filterPanelTitle, compact && styles.filterPanelTitleCompact]}>
+                        Datum auswählen
+                    </Text>
 
                     {dateOptions.length === 0 ? (
                         <Text style={styles.emptyFilterText}>Noch keine Daten vorhanden</Text>
@@ -273,14 +281,14 @@ export default function Events() {
                                                 colors={['#00c6ff', '#0072ff']}
                                                 start={{ x: 0, y: 0 }}
                                                 end={{ x: 1, y: 0 }}
-                                                style={styles.optionChip}
+                                                style={[styles.optionChip, compact && styles.optionChipCompact]}
                                             >
-                                                <Ionicons name="calendar-outline" size={14} color="#fff" />
+                                                <Ionicons name="calendar-outline" size={13} color="#fff" />
                                                 <Text style={styles.optionChipTextActive}>{date}</Text>
                                             </LinearGradient>
                                         ) : (
-                                            <View style={styles.optionChipInactive}>
-                                                <Ionicons name="calendar-outline" size={14} color="rgba(255,255,255,0.5)" />
+                                            <View style={[styles.optionChipInactive, compact && styles.optionChipCompact]}>
+                                                <Ionicons name="calendar-outline" size={13} color="rgba(255,255,255,0.5)" />
                                                 <Text style={styles.optionChipText}>{date}</Text>
                                             </View>
                                         )}
@@ -295,9 +303,9 @@ export default function Events() {
 
         if (activeFilter === 'location') {
             return (
-                <View style={styles.filterPanel}>
-                    <View style={styles.filterInputWrapper}>
-                        <Ionicons name="location-outline" size={18} color="rgba(255,255,255,0.4)" />
+                <View style={[styles.filterPanel, compact && styles.filterPanelCompact]}>
+                    <View style={[styles.filterInputWrapper, compact && styles.filterInputWrapperCompact]}>
+                        <Ionicons name="location-outline" size={17} color="rgba(255,255,255,0.4)" />
 
                         <TextInput
                             placeholder="Standort suchen..."
@@ -334,14 +342,14 @@ export default function Events() {
                                                 colors={['#00c6ff', '#0072ff']}
                                                 start={{ x: 0, y: 0 }}
                                                 end={{ x: 1, y: 0 }}
-                                                style={styles.optionChip}
+                                                style={[styles.optionChip, compact && styles.optionChipCompact]}
                                             >
-                                                <Ionicons name="location-outline" size={14} color="#fff" />
+                                                <Ionicons name="location-outline" size={13} color="#fff" />
                                                 <Text style={styles.optionChipTextActive}>{location}</Text>
                                             </LinearGradient>
                                         ) : (
-                                            <View style={styles.optionChipInactive}>
-                                                <Ionicons name="location-outline" size={14} color="rgba(255,255,255,0.5)" />
+                                            <View style={[styles.optionChipInactive, compact && styles.optionChipCompact]}>
+                                                <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.5)" />
                                                 <Text style={styles.optionChipText}>{location}</Text>
                                             </View>
                                         )}
@@ -356,8 +364,10 @@ export default function Events() {
 
         if (activeFilter === 'category') {
             return (
-                <View style={styles.filterPanel}>
-                    <Text style={styles.filterPanelTitle}>Rubrik auswählen</Text>
+                <View style={[styles.filterPanel, compact && styles.filterPanelCompact]}>
+                    <Text style={[styles.filterPanelTitle, compact && styles.filterPanelTitleCompact]}>
+                        Rubrik auswählen
+                    </Text>
 
                     <ScrollView
                         horizontal
@@ -378,14 +388,14 @@ export default function Events() {
                                             colors={['#00c6ff', '#0072ff']}
                                             start={{ x: 0, y: 0 }}
                                             end={{ x: 1, y: 0 }}
-                                            style={styles.optionChip}
+                                            style={[styles.optionChip, compact && styles.optionChipCompact]}
                                         >
-                                            <Ionicons name="grid-outline" size={14} color="#fff" />
+                                            <Ionicons name="grid-outline" size={13} color="#fff" />
                                             <Text style={styles.optionChipTextActive}>{category}</Text>
                                         </LinearGradient>
                                     ) : (
-                                        <View style={styles.optionChipInactive}>
-                                            <Ionicons name="grid-outline" size={14} color="rgba(255,255,255,0.5)" />
+                                        <View style={[styles.optionChipInactive, compact && styles.optionChipCompact]}>
+                                            <Ionicons name="grid-outline" size={13} color="rgba(255,255,255,0.5)" />
                                             <Text style={styles.optionChipText}>{category}</Text>
                                         </View>
                                     )}
@@ -404,120 +414,128 @@ export default function Events() {
         <View style={styles.container}>
             <StatusBar barStyle="light-content" />
 
-            <View style={styles.header}>
-                <Text style={styles.headerKicker}>EVENTUP</Text>
-                <Text style={styles.headerTitle}>Events</Text>
-                <Text style={styles.headerSubtitle}>Finde Events nach Datum, Standort oder Rubrik.</Text>
-            </View>
-
-            <View style={styles.searchWrapper}>
-                <Ionicons
-                    name="search"
-                    size={18}
-                    color="rgba(255,255,255,0.4)"
-                />
-
-                <TextInput
-                    placeholder="Nach Events suchen..."
-                    placeholderTextColor="rgba(255,255,255,0.3)"
-                    style={styles.searchInput}
-                    value={searchText}
-                    onChangeText={setSearchText}
-                />
-
-                {searchText.length > 0 && (
-                    <TouchableOpacity onPress={() => setSearchText('')}>
-                        <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.4)" />
-                    </TouchableOpacity>
-                )}
-            </View>
-
-            <View style={styles.filterRow}>
-                <TouchableOpacity
-                    activeOpacity={0.85}
-                    onPress={() => setActiveFilter(activeFilter === 'date' ? null : 'date')}
-                >
-                    {activeFilter === 'date' || dateFilter ? (
-                        <LinearGradient
-                            colors={['#00c6ff', '#0072ff']}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={styles.filterButton}
-                        >
-                            <Ionicons name="calendar-outline" size={15} color="#fff" />
-                            <Text style={styles.filterTextActive}>Datum</Text>
-                        </LinearGradient>
-                    ) : (
-                        <View style={styles.filterButtonInactive}>
-                            <Ionicons name="calendar-outline" size={15} color="rgba(255,255,255,0.5)" />
-                            <Text style={styles.filterText}>Datum</Text>
-                        </View>
-                    )}
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    activeOpacity={0.85}
-                    onPress={() => setActiveFilter(activeFilter === 'location' ? null : 'location')}
-                >
-                    {activeFilter === 'location' || locationFilter ? (
-                        <LinearGradient
-                            colors={['#00c6ff', '#0072ff']}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={styles.filterButton}
-                        >
-                            <Ionicons name="location-outline" size={15} color="#fff" />
-                            <Text style={styles.filterTextActive}>Standort</Text>
-                        </LinearGradient>
-                    ) : (
-                        <View style={styles.filterButtonInactive}>
-                            <Ionicons name="location-outline" size={15} color="rgba(255,255,255,0.5)" />
-                            <Text style={styles.filterText}>Standort</Text>
-                        </View>
-                    )}
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    activeOpacity={0.85}
-                    onPress={() => setActiveFilter(activeFilter === 'category' ? null : 'category')}
-                >
-                    {activeFilter === 'category' || categoryFilter ? (
-                        <LinearGradient
-                            colors={['#00c6ff', '#0072ff']}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={styles.filterButton}
-                        >
-                            <Ionicons name="grid-outline" size={15} color="#fff" />
-                            <Text style={styles.filterTextActive}>Rubriken</Text>
-                        </LinearGradient>
-                    ) : (
-                        <View style={styles.filterButtonInactive}>
-                            <Ionicons name="grid-outline" size={15} color="rgba(255,255,255,0.5)" />
-                            <Text style={styles.filterText}>Rubriken</Text>
-                        </View>
-                    )}
-                </TouchableOpacity>
-            </View>
-
-            {renderFilterContent()}
-
-            {hasActiveFilters && (
-                <View style={styles.resultRow}>
-                    <Text style={styles.resultText}>
-                        {filteredEvents.length} Event{filteredEvents.length === 1 ? '' : 's'} gefunden
-                    </Text>
-
-                    <TouchableOpacity activeOpacity={0.8} onPress={clearFilters}>
-                        <Text style={styles.clearText}>Filter löschen</Text>
-                    </TouchableOpacity>
-                </View>
-            )}
-
             <ScrollView
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.scrollContent}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={[
+                    styles.pageScrollContent,
+                    compact && styles.pageScrollContentCompact,
+                ]}
             >
+                <View style={[styles.header, compact && styles.headerCompact]}>
+                    <Text style={styles.headerKicker}>EVENTUP</Text>
+                    <Text style={[styles.headerTitle, compact && styles.headerTitleCompact]}>
+                        Events
+                    </Text>
+                    <Text style={styles.headerSubtitle}>
+                        Finde Events nach Datum, Standort oder Rubrik.
+                    </Text>
+                </View>
+
+                <View style={[styles.searchWrapper, compact && styles.searchWrapperCompact]}>
+                    <Ionicons
+                        name="search"
+                        size={18}
+                        color="rgba(255,255,255,0.4)"
+                    />
+
+                    <TextInput
+                        placeholder="Nach Events suchen..."
+                        placeholderTextColor="rgba(255,255,255,0.3)"
+                        style={styles.searchInput}
+                        value={searchText}
+                        onChangeText={setSearchText}
+                    />
+
+                    {searchText.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchText('')}>
+                            <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.4)" />
+                        </TouchableOpacity>
+                    )}
+                </View>
+
+                <View style={[styles.filterRow, compact && styles.filterRowCompact]}>
+                    <TouchableOpacity
+                        activeOpacity={0.85}
+                        onPress={() => setActiveFilter(activeFilter === 'date' ? null : 'date')}
+                    >
+                        {activeFilter === 'date' || dateFilter ? (
+                            <LinearGradient
+                                colors={['#00c6ff', '#0072ff']}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={[styles.filterButton, compact && styles.filterButtonCompact]}
+                            >
+                                <Ionicons name="calendar-outline" size={15} color="#fff" />
+                                <Text style={styles.filterTextActive}>Datum</Text>
+                            </LinearGradient>
+                        ) : (
+                            <View style={[styles.filterButtonInactive, compact && styles.filterButtonCompact]}>
+                                <Ionicons name="calendar-outline" size={15} color="rgba(255,255,255,0.5)" />
+                                <Text style={styles.filterText}>Datum</Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        activeOpacity={0.85}
+                        onPress={() => setActiveFilter(activeFilter === 'location' ? null : 'location')}
+                    >
+                        {activeFilter === 'location' || locationFilter ? (
+                            <LinearGradient
+                                colors={['#00c6ff', '#0072ff']}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={[styles.filterButton, compact && styles.filterButtonCompact]}
+                            >
+                                <Ionicons name="location-outline" size={15} color="#fff" />
+                                <Text style={styles.filterTextActive}>Standort</Text>
+                            </LinearGradient>
+                        ) : (
+                            <View style={[styles.filterButtonInactive, compact && styles.filterButtonCompact]}>
+                                <Ionicons name="location-outline" size={15} color="rgba(255,255,255,0.5)" />
+                                <Text style={styles.filterText}>Standort</Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        activeOpacity={0.85}
+                        onPress={() => setActiveFilter(activeFilter === 'category' ? null : 'category')}
+                    >
+                        {activeFilter === 'category' || categoryFilter ? (
+                            <LinearGradient
+                                colors={['#00c6ff', '#0072ff']}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={[styles.filterButton, compact && styles.filterButtonCompact]}
+                            >
+                                <Ionicons name="grid-outline" size={15} color="#fff" />
+                                <Text style={styles.filterTextActive}>Rubriken</Text>
+                            </LinearGradient>
+                        ) : (
+                            <View style={[styles.filterButtonInactive, compact && styles.filterButtonCompact]}>
+                                <Ionicons name="grid-outline" size={15} color="rgba(255,255,255,0.5)" />
+                                <Text style={styles.filterText}>Rubriken</Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
+                </View>
+
+                {renderFilterContent()}
+
+                {hasActiveFilters && (
+                    <View style={styles.resultRow}>
+                        <Text style={styles.resultText}>
+                            {filteredEvents.length} Event{filteredEvents.length === 1 ? '' : 's'} gefunden
+                        </Text>
+
+                        <TouchableOpacity activeOpacity={0.8} onPress={clearFilters}>
+                            <Text style={styles.clearText}>Filter löschen</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+
                 {filteredEvents.length === 0 ? (
                     <View style={styles.emptyState}>
                         <Ionicons name="search-outline" size={48} color="rgba(255,255,255,0.15)" />
@@ -528,18 +546,18 @@ export default function Events() {
                     filteredEvents.map((item) => (
                         <TouchableOpacity
                             key={item.id}
-                            style={styles.card}
+                            style={[styles.card, compact && styles.cardCompact]}
                             activeOpacity={0.9}
                             onPress={() => goToDetail(item)}
                         >
                             <Image
                                 source={{ uri: getEventImage(item) }}
-                                style={styles.cardImage}
+                                style={[styles.cardImage, compact && styles.cardImageCompact]}
                             />
 
                             <LinearGradient
                                 colors={['transparent', 'rgba(0,0,0,0.65)']}
-                                style={styles.cardImageGradient}
+                                style={[styles.cardImageGradient, compact && styles.cardImageGradientCompact]}
                             />
 
                             <TouchableOpacity
@@ -632,12 +650,25 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#0a0d14',
+    },
+
+    pageScrollContent: {
         paddingTop: 62,
+        paddingBottom: 120,
+    },
+
+    pageScrollContentCompact: {
+        paddingTop: 26,
+        paddingBottom: 60,
     },
 
     header: {
         paddingHorizontal: 20,
         marginBottom: 18,
+    },
+
+    headerCompact: {
+        marginBottom: 10,
     },
 
     headerKicker: {
@@ -653,6 +684,10 @@ const styles = StyleSheet.create({
         fontSize: 36,
         fontWeight: '900',
         letterSpacing: -1,
+    },
+
+    headerTitleCompact: {
+        fontSize: 30,
     },
 
     headerSubtitle: {
@@ -675,6 +710,11 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
     },
 
+    searchWrapperCompact: {
+        paddingVertical: 11,
+        marginBottom: 10,
+    },
+
     searchInput: {
         flex: 1,
         color: '#fff',
@@ -688,6 +728,10 @@ const styles = StyleSheet.create({
         marginBottom: 14,
         paddingHorizontal: 20,
         gap: 8,
+    },
+
+    filterRowCompact: {
+        marginBottom: 10,
     },
 
     filterButton: {
@@ -715,6 +759,11 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255,255,255,0.1)',
     },
 
+    filterButtonCompact: {
+        paddingVertical: 8,
+        minWidth: 100,
+    },
+
     filterTextActive: {
         color: '#fff',
         fontWeight: '700',
@@ -737,11 +786,20 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255,255,255,0.09)',
     },
 
+    filterPanelCompact: {
+        padding: 11,
+        marginBottom: 10,
+    },
+
     filterPanelTitle: {
         color: '#fff',
         fontSize: 15,
         fontWeight: '800',
         marginBottom: 12,
+    },
+
+    filterPanelTitleCompact: {
+        marginBottom: 9,
     },
 
     filterInputWrapper: {
@@ -754,6 +812,10 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         paddingHorizontal: 14,
         paddingVertical: 12,
+    },
+
+    filterInputWrapperCompact: {
+        paddingVertical: 9,
     },
 
     filterInput: {
@@ -795,6 +857,11 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255,255,255,0.1)',
     },
 
+    optionChipCompact: {
+        paddingVertical: 7,
+        paddingHorizontal: 12,
+    },
+
     optionChipTextActive: {
         color: '#fff',
         fontSize: 13,
@@ -831,10 +898,6 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
 
-    scrollContent: {
-        paddingBottom: 120,
-    },
-
     card: {
         marginHorizontal: 20,
         marginBottom: 18,
@@ -845,10 +908,18 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255,255,255,0.08)',
     },
 
+    cardCompact: {
+        marginBottom: 14,
+    },
+
     cardImage: {
         width: '100%',
         height: 175,
         backgroundColor: 'rgba(255,255,255,0.06)',
+    },
+
+    cardImageCompact: {
+        height: 145,
     },
 
     cardImageGradient: {
@@ -857,6 +928,10 @@ const styles = StyleSheet.create({
         right: 0,
         top: 0,
         height: 175,
+    },
+
+    cardImageGradientCompact: {
+        height: 145,
     },
 
     bookmarkButton: {
@@ -943,8 +1018,8 @@ const styles = StyleSheet.create({
     emptyState: {
         alignItems: 'center',
         marginHorizontal: 20,
-        marginTop: 38,
-        padding: 34,
+        marginTop: 24,
+        padding: 30,
         borderRadius: 22,
         backgroundColor: 'rgba(255,255,255,0.04)',
         borderWidth: 1,
