@@ -13,11 +13,13 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { db, auth } from '@/firebaseConfig';
 import { ref, onValue, remove } from 'firebase/database';
 import { router } from 'expo-router';
+
+import { isEventVisibleInNormalPages } from '@/utils/eventDateUtils';
 
 const fallbackImage = 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30';
 
@@ -229,7 +231,11 @@ export default function Saved() {
         return eventDate >= saturday && eventDate <= sunday;
     };
 
-    const filteredSavedEvents = savedEvents.filter((item) => {
+    const visibleSavedEvents = useMemo(() => {
+        return savedEvents.filter((item) => isEventVisibleInNormalPages(item));
+    }, [savedEvents]);
+
+    const filteredSavedEvents = visibleSavedEvents.filter((item) => {
         if (activeFilter === 'Alle') return true;
 
         const eventDate = parseEventDate(getEventDate(item));
@@ -246,7 +252,6 @@ export default function Saved() {
         <View style={styles.container}>
             <StatusBar barStyle="light-content" />
 
-            {/* HEADER */}
             <View style={styles.header}>
                 <View>
                     <Text style={styles.headerKicker}>EVENTUP</Text>
@@ -258,7 +263,6 @@ export default function Saved() {
                 </View>
             </View>
 
-            {/* FILTERS */}
             <View style={styles.filterWrapper}>
                 <ScrollView
                     horizontal
@@ -298,7 +302,6 @@ export default function Saved() {
                 </ScrollView>
             </View>
 
-            {/* EVENTS */}
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
@@ -314,11 +317,11 @@ export default function Saved() {
                         </View>
 
                         <Text style={styles.emptyTitle}>
-                            Noch nichts gespeichert
+                            Keine aktuellen Favoriten
                         </Text>
 
                         <Text style={styles.emptySubtitle}>
-                            Speichere Events, damit du sie später schneller wiederfindest.
+                            Vergangene Events verschwinden hier automatisch und erscheinen nur noch kurz in Weekly.
                         </Text>
                     </View>
                 )}
@@ -426,8 +429,6 @@ const styles = StyleSheet.create({
         paddingTop: 62,
     },
 
-    // ── HEADER ──
-
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -470,8 +471,6 @@ const styles = StyleSheet.create({
         marginTop: 4,
     },
 
-    // ── FILTERS ──
-
     filterWrapper: {
         height: 56,
         marginBottom: 6,
@@ -510,13 +509,9 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
 
-    // ── SCROLL ──
-
     scrollContent: {
         paddingBottom: 120,
     },
-
-    // ── EMPTY ──
 
     emptyContainer: {
         alignItems: 'center',
@@ -554,8 +549,6 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         lineHeight: 20,
     },
-
-    // ── CARD ──
 
     card: {
         marginHorizontal: 20,
@@ -640,8 +633,6 @@ const styles = StyleSheet.create({
         color: 'rgba(255,255,255,0.5)',
         fontSize: 13,
     },
-
-    // ── SHARE ──
 
     shareButton: {
         position: 'absolute',

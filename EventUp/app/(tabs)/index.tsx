@@ -16,11 +16,13 @@ import {
 
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useMemo, useState } from 'react';
 
 import { db, auth } from '@/firebaseConfig';
 import { ref, onValue, set, remove } from 'firebase/database';
 import { router } from 'expo-router';
+
+import { isEventVisibleInNormalPages } from '@/utils/eventDateUtils';
 
 const fallbackImage = 'https://images.unsplash.com/photo-1506157786151-b8491531f063';
 
@@ -101,16 +103,6 @@ export default function Home() {
 
     const scrollToTop = () => scrollRef.current?.scrollTo({ y: 0, animated: true });
 
-    const categories = ['Alle', 'Musik', 'Sport', 'Food', 'Bildung'];
-
-    const categoryIcons: Record<string, keyof typeof Ionicons.glyphMap> = {
-        Alle: 'apps-outline',
-        Musik: 'musical-notes-outline',
-        Sport: 'football-outline',
-        Food: 'restaurant-outline',
-        Bildung: 'school-outline',
-    };
-
     const getEventImage = (event: any) => {
         return event.image || event.imageUrl || fallbackImage;
     };
@@ -121,6 +113,33 @@ export default function Home() {
 
     const getEventCategory = (event: any) => {
         return event.category || event.eventType || 'Event';
+    };
+
+    const visibleEvents = useMemo(() => {
+        return events.filter((event) => isEventVisibleInNormalPages(event));
+    }, [events]);
+
+    const categories = useMemo(() => {
+        const defaultCategories = ['Musik', 'Sport', 'Food', 'Bildung', 'Event'];
+
+        const firebaseCategories = visibleEvents
+            .map((event) => getEventCategory(event))
+            .filter((category) => category && category.trim() !== '');
+
+        return ['Alle', ...new Set([...defaultCategories, ...firebaseCategories])];
+    }, [visibleEvents]);
+
+    const categoryIcons: Record<string, keyof typeof Ionicons.glyphMap> = {
+        Alle: 'apps-outline',
+        Musik: 'musical-notes-outline',
+        Sport: 'football-outline',
+        Food: 'restaurant-outline',
+        Bildung: 'school-outline',
+        Ausbildung: 'school-outline',
+        Event: 'calendar-outline',
+        Kultur: 'color-palette-outline',
+        Party: 'sparkles-outline',
+        Workshop: 'construct-outline',
     };
 
     const goToDetail = (item: any) => {
@@ -193,7 +212,7 @@ export default function Home() {
         }
     };
 
-    const filteredEvents = events.filter((event) => {
+    const filteredEvents = visibleEvents.filter((event) => {
         const search = searchText.toLowerCase();
 
         const matchesSearch =
@@ -208,13 +227,12 @@ export default function Home() {
         return matchesSearch && matchesCategory;
     });
 
-    const featuredEvent = events[0];
+    const featuredEvent = visibleEvents[0];
 
     return (
         <View style={styles.container}>
             <StatusBar barStyle="light-content" />
 
-            {/* ── ANIMATED HEADER ── */}
             <Animated.View style={[styles.headerContainer, { height: headerHeight }]}>
                 <ImageBackground
                     source={require('../../assets/images/logo.png')}
@@ -227,14 +245,12 @@ export default function Home() {
                     style={StyleSheet.absoluteFillObject}
                 />
 
-                {/* MINI TITLE */}
                 <Animated.View style={[styles.miniHeader, { opacity: miniTitleOpacity }]}>
                     <Text style={styles.miniTitle}>
                         EVENT<Text style={{ color: '#00e5ff' }}>UP</Text>
                     </Text>
                 </Animated.View>
 
-                {/* FULL LOGO */}
                 <Animated.View style={[styles.headerBottom, { opacity: logoOpacity }]}>
                     <Text style={styles.headerLogo}>
                         EVENT<Text style={{ color: '#00e5ff' }}>UP</Text>
@@ -246,7 +262,6 @@ export default function Home() {
                 </Animated.View>
             </Animated.View>
 
-            {/* ── SCROLLABLE CONTENT ── */}
             <Animated.ScrollView
                 ref={scrollRef}
                 showsVerticalScrollIndicator={false}
@@ -259,7 +274,6 @@ export default function Home() {
             >
                 <View style={{ height: 280 }} />
 
-                {/* 🔍 SEARCH */}
                 <View style={styles.searchWrapper}>
                     <Ionicons name="search" size={18} color="rgba(255,255,255,0.4)" />
 
@@ -278,7 +292,6 @@ export default function Home() {
                     )}
                 </View>
 
-                {/* 🏷 CATEGORIES */}
                 <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
@@ -300,13 +313,20 @@ export default function Home() {
                                         end={{ x: 1, y: 0 }}
                                         style={styles.categoryChip}
                                     >
-                                        <Ionicons name={categoryIcons[cat]} size={15} color="#fff" />
-                                        <Text style={styles.categoryChipTextActive}>{cat}</Text>
+                                        <Ionicons
+                                            name={categoryIcons[cat] || 'pricetag-outline'}
+                                            size={15}
+                                            color="#fff"
+                                        />
+
+                                        <Text style={styles.categoryChipTextActive}>
+                                            {cat}
+                                        </Text>
                                     </LinearGradient>
                                 ) : (
                                     <View style={styles.categoryChipInactive}>
                                         <Ionicons
-                                            name={categoryIcons[cat]}
+                                            name={categoryIcons[cat] || 'pricetag-outline'}
                                             size={15}
                                             color="rgba(255,255,255,0.5)"
                                         />
@@ -321,7 +341,6 @@ export default function Home() {
                     })}
                 </ScrollView>
 
-                {/* ⭐ FEATURED */}
                 <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>Für Dich</Text>
                     <TouchableOpacity>
@@ -345,7 +364,6 @@ export default function Home() {
                             style={styles.featuredGradient}
                         />
 
-                        {/* BOOKMARK */}
                         <TouchableOpacity
                             style={styles.bookmarkBadge}
                             activeOpacity={0.85}
@@ -397,7 +415,6 @@ export default function Home() {
                     </TouchableOpacity>
                 ) : null}
 
-                {/* 📋 EVENT LIST */}
                 <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>Events entdecken</Text>
                     <Text style={styles.sectionCount}>{filteredEvents.length} Events</Text>
@@ -469,7 +486,6 @@ export default function Home() {
                 )}
             </Animated.ScrollView>
 
-            {/* 🔝 FAB SCROLL TO TOP */}
             <Animated.View style={[styles.fab, { opacity: fabOpacity }]}>
                 <TouchableOpacity onPress={scrollToTop} activeOpacity={0.85}>
                     <LinearGradient
@@ -491,7 +507,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#0a0d14',
     },
 
-    // ── HEADER ──
     headerContainer: {
         position: 'absolute',
         top: 0,
@@ -537,7 +552,6 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
 
-    // ── SEARCH ──
     searchWrapper: {
         marginHorizontal: 20,
         marginBottom: 20,
@@ -559,7 +573,6 @@ const styles = StyleSheet.create({
         padding: 0,
     },
 
-    // ── CATEGORIES ──
     categoryRow: {
         paddingHorizontal: 20,
         gap: 10,
@@ -599,7 +612,6 @@ const styles = StyleSheet.create({
         fontSize: 13,
     },
 
-    // ── SECTION HEADER ──
     sectionHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -625,7 +637,6 @@ const styles = StyleSheet.create({
         color: 'rgba(255,255,255,0.35)',
     },
 
-    // ── FEATURED ──
     featuredCard: {
         marginHorizontal: 20,
         marginBottom: 32,
@@ -703,7 +714,6 @@ const styles = StyleSheet.create({
         marginHorizontal: 2,
     },
 
-    // ── EVENT CARDS ──
     card: {
         marginHorizontal: 20,
         marginBottom: 16,
@@ -767,7 +777,6 @@ const styles = StyleSheet.create({
         fontSize: 13,
     },
 
-    // ── EMPTY STATE ──
     emptyState: {
         alignItems: 'center',
         paddingTop: 48,
@@ -779,7 +788,6 @@ const styles = StyleSheet.create({
         fontSize: 15,
     },
 
-    // ── FAB ──
     fab: {
         position: 'absolute',
         bottom: 110,

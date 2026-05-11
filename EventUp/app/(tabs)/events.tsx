@@ -20,6 +20,8 @@ import { ref, onValue, set, remove } from 'firebase/database';
 import { router } from 'expo-router';
 import { auth } from '@/firebaseConfig';
 
+import { isEventVisibleInNormalPages } from '@/utils/eventDateUtils';
+
 const fallbackImage = 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30';
 
 export default function Events() {
@@ -87,33 +89,37 @@ export default function Events() {
         return event.category || event.eventType || 'Event';
     };
 
+    const visibleEvents = useMemo(() => {
+        return events.filter((event) => isEventVisibleInNormalPages(event));
+    }, [events]);
+
     const dateOptions = useMemo(() => {
-        const allDates = events
+        const allDates = visibleEvents
             .map((event) => getEventDate(event))
             .filter((date) => date && date.trim() !== '');
 
         return [...new Set(allDates)];
-    }, [events]);
+    }, [visibleEvents]);
 
     const locationOptions = useMemo(() => {
-        const allLocations = events
+        const allLocations = visibleEvents
             .map((event) => event.location)
             .filter((location) => location && location.trim() !== '');
 
         return [...new Set(allLocations)];
-    }, [events]);
+    }, [visibleEvents]);
 
     const categoryOptions = useMemo(() => {
         const defaultCategories = ['Ausbildung', 'Sport', 'Event'];
 
-        const firebaseCategories = events
+        const firebaseCategories = visibleEvents
             .map((event) => getEventCategory(event))
             .filter((category) => category && category.trim() !== '');
 
         return [...new Set([...defaultCategories, ...firebaseCategories])];
-    }, [events]);
+    }, [visibleEvents]);
 
-    const filteredEvents = events.filter((event) => {
+    const filteredEvents = visibleEvents.filter((event) => {
         const search = searchText.toLowerCase().trim();
         const selectedDate = dateFilter.toLowerCase().trim();
         const selectedLocation = locationFilter.toLowerCase().trim();
@@ -173,8 +179,19 @@ export default function Events() {
             await set(savedRef, {
                 title: item.title || '',
                 image: getEventImage(item),
+                imageUrl: getEventImage(item),
                 location: item.location || '',
                 date: getEventDate(item),
+                startDate: item.startDate || item.date || '',
+                startTime: item.startTime || '',
+                endDate: item.endDate || '',
+                endTime: item.endTime || '',
+                description: item.description || '',
+                shortDescription: item.shortDescription || '',
+                organizerName: item.organizerName || '',
+                ticketInfo: item.ticketInfo || '',
+                ticketLink: item.ticketLink || '',
+                eventType: getEventCategory(item),
                 category: getEventCategory(item),
             });
         }
@@ -207,11 +224,23 @@ export default function Events() {
         router.push({
             pathname: '/detail',
             params: {
-                title: item.title,
                 id: item.id,
+                title: item.title,
                 image: getEventImage(item),
+                imageUrl: getEventImage(item),
                 location: item.location,
                 date: getEventDate(item),
+                startDate: item.startDate || item.date,
+                startTime: item.startTime,
+                endDate: item.endDate,
+                endTime: item.endTime,
+                description: item.description,
+                shortDescription: item.shortDescription,
+                organizerName: item.organizerName,
+                ticketInfo: item.ticketInfo,
+                ticketLink: item.ticketLink,
+                eventType: item.eventType || item.category,
+                category: item.category || item.eventType,
             },
         });
     };
@@ -269,6 +298,7 @@ export default function Events() {
                 <View style={styles.filterPanel}>
                     <View style={styles.filterInputWrapper}>
                         <Ionicons name="location-outline" size={18} color="rgba(255,255,255,0.4)" />
+
                         <TextInput
                             placeholder="Standort suchen..."
                             placeholderTextColor="rgba(255,255,255,0.3)"
@@ -276,6 +306,7 @@ export default function Events() {
                             value={locationFilter}
                             onChangeText={setLocationFilter}
                         />
+
                         {locationFilter.length > 0 && (
                             <TouchableOpacity onPress={() => setLocationFilter('')}>
                                 <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.4)" />
@@ -376,9 +407,9 @@ export default function Events() {
             <View style={styles.header}>
                 <Text style={styles.headerKicker}>EVENTUP</Text>
                 <Text style={styles.headerTitle}>Events</Text>
+                <Text style={styles.headerSubtitle}>Finde Events nach Datum, Standort oder Rubrik.</Text>
             </View>
 
-            {/* 🔍 SEARCH */}
             <View style={styles.searchWrapper}>
                 <Ionicons
                     name="search"
@@ -401,7 +432,6 @@ export default function Events() {
                 )}
             </View>
 
-            {/* 🔘 FILTERS */}
             <View style={styles.filterRow}>
                 <TouchableOpacity
                     activeOpacity={0.85}
@@ -484,7 +514,6 @@ export default function Events() {
                 </View>
             )}
 
-            {/* 📜 EVENTS */}
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
@@ -503,7 +532,6 @@ export default function Events() {
                             activeOpacity={0.9}
                             onPress={() => goToDetail(item)}
                         >
-                            {/* 📷 IMAGE */}
                             <Image
                                 source={{ uri: getEventImage(item) }}
                                 style={styles.cardImage}
@@ -514,7 +542,6 @@ export default function Events() {
                                 style={styles.cardImageGradient}
                             />
 
-                            {/* 🔖 BOOKMARK */}
                             <TouchableOpacity
                                 style={styles.bookmarkButton}
                                 activeOpacity={0.85}
@@ -542,7 +569,6 @@ export default function Events() {
                                 <Text style={styles.categoryBadgeText}>{getEventCategory(item)}</Text>
                             </View>
 
-                            {/* 📄 CONTENT */}
                             <View style={styles.cardContent}>
                                 <Text style={styles.title} numberOfLines={1}>
                                     {item.title}
@@ -574,7 +600,6 @@ export default function Events() {
                                     </View>
                                 </View>
 
-                                {/* 🔗 SHARE */}
                                 <TouchableOpacity
                                     style={styles.shareButton}
                                     activeOpacity={0.85}
@@ -610,8 +635,6 @@ const styles = StyleSheet.create({
         paddingTop: 62,
     },
 
-    // ── HEADER ──
-
     header: {
         paddingHorizontal: 20,
         marginBottom: 18,
@@ -638,8 +661,6 @@ const styles = StyleSheet.create({
         marginTop: 4,
     },
 
-    // ── SEARCH ──
-
     searchWrapper: {
         marginHorizontal: 20,
         marginBottom: 14,
@@ -660,8 +681,6 @@ const styles = StyleSheet.create({
         fontSize: 15,
         padding: 0,
     },
-
-    // ── FILTERS ──
 
     filterRow: {
         flexDirection: 'row',
@@ -707,8 +726,6 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         fontSize: 13,
     },
-
-    // ── FILTER PANEL ──
 
     filterPanel: {
         marginHorizontal: 20,
@@ -813,8 +830,6 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontWeight: '700',
     },
-
-    // ── EVENTS ──
 
     scrollContent: {
         paddingBottom: 120,
@@ -924,8 +939,6 @@ const styles = StyleSheet.create({
         color: '#00c6ff',
         fontSize: 12,
     },
-
-    // ── EMPTY STATE ──
 
     emptyState: {
         alignItems: 'center',

@@ -13,17 +13,24 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { db, auth } from '@/firebaseConfig';
 import { ref, onValue, set, remove, get, update } from 'firebase/database';
+
+import {
+    getEventStartDate,
+    isEventVisibleInWeekly,
+    isWeeklyVoteExpired,
+} from '@/utils/eventDateUtils';
 
 const fallbackImage = 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30';
 
 export default function Weekly() {
 
     const [photo, setPhoto] = useState('');
-    const [votes, setVotes] = useState<any[]>([]);
+    const [events, setEvents] = useState<any[]>([]);
+    const [weeklyVotes, setWeeklyVotes] = useState<any>({});
     const [userVotes, setUserVotes] = useState<any>({});
 
     useEffect(() => {
@@ -39,25 +46,38 @@ export default function Weekly() {
             }
         });
 
+        const eventsRef = ref(db, 'events');
+
+        const unsubscribeEvents = onValue(eventsRef, (snapshot) => {
+            const data = snapshot.val();
+
+            if (data) {
+                const loadedEvents = Object.keys(data).map((key) => ({
+                    id: key,
+                    ...data[key],
+                }));
+
+                setEvents(loadedEvents);
+            } else {
+                setEvents([]);
+            }
+        });
+
         const votesRef = ref(db, 'weeklyVotes');
 
         const unsubscribeVotes = onValue(votesRef, (snapshot) => {
             const data = snapshot.val();
 
             if (data) {
-                const loadedVotes = Object.keys(data).map((key) => ({
-                    id: key,
-                    ...data[key],
-                }));
-
-                setVotes(loadedVotes);
+                setWeeklyVotes(data);
             } else {
-                setVotes([]);
+                setWeeklyVotes({});
             }
         });
 
         return () => {
             unsubscribePhoto();
+            unsubscribeEvents();
             unsubscribeVotes();
         };
     }, []);
@@ -81,6 +101,42 @@ export default function Weekly() {
 
         return () => unsubscribeUserVotes();
     }, []);
+
+    useEffect(() => {
+        events.forEach(async (event) => {
+            if (isWeeklyVoteExpired(event)) {
+                const voteRef = ref(db, `weeklyVotes/${event.id}`);
+
+                try {
+                    await remove(voteRef);
+                } catch (error) {
+                    console.log('Fehler beim Löschen alter Weekly-Votes:', error);
+                }
+            }
+        });
+    }, [events]);
+
+    const getEventImage = (item: any) => {
+        return item.image || item.imageUrl || fallbackImage;
+    };
+
+    const getEventCategory = (item: any) => {
+        return item.category || item.eventType || 'Event';
+    };
+
+    const votes = useMemo(() => {
+        return events
+            .filter((event) => isEventVisibleInWeekly(event))
+            .map((event) => {
+                const voteData = weeklyVotes[event.id] || {};
+
+                return {
+                    ...event,
+                    likeCount: Number(voteData.likeCount ?? voteData.likes ?? 0),
+                    dislikeCount: Number(voteData.dislikeCount ?? voteData.dislikes ?? 0),
+                };
+            });
+    }, [events, weeklyVotes]);
 
     const getVoteNumbers = (item: any) => {
         const likeCount = Number(item.likeCount ?? item.likes ?? 0);
@@ -118,13 +174,17 @@ export default function Weekly() {
     const shareVote = async (item: any) => {
         const title = item.title || 'Abstimmung';
         const location = item.location || 'Kein Standort angegeben';
+        const date = getEventStartDate(item) || 'Kein Datum angegeben';
+        const category = getEventCategory(item);
 
         try {
             await Share.share({
                 title,
                 message:
-                    `Stimme bei dieser EventUp-Abstimmung ab:\n\n` +
+                    `Bewerte dieses vergangene Event auf EventUp:\n\n` +
                     `${title}\n` +
+                    `Rubrik: ${category}\n` +
+                    `Datum: ${date}\n` +
                     `Standort: ${location}`,
             });
         } catch (error) {
@@ -145,9 +205,7 @@ export default function Weekly() {
         const userVoteRef = ref(db, `weeklyUserVotes/${user.uid}/${item.id}`);
 
         const snapshot = await get(voteRef);
-        const currentData = snapshot.val();
-
-        if (!currentData) return;
+        const currentData = snapshot.val() || {};
 
         let likeCount = Number(currentData.likeCount ?? currentData.likes ?? 0);
         let dislikeCount = Number(currentData.dislikeCount ?? currentData.dislikes ?? 0);
@@ -162,6 +220,11 @@ export default function Weekly() {
             await update(voteRef, {
                 likeCount,
                 dislikeCount,
+                title: item.title || '',
+                location: item.location || '',
+                date: getEventStartDate(item),
+                eventType: getEventCategory(item),
+                eventId: item.id,
             });
 
             await remove(userVoteRef);
@@ -182,7 +245,12 @@ export default function Weekly() {
             dislikeCount += 1;
         }
 
-        await update(voteRef, {
+        await set(voteRef, {
+            title: item.title || '',
+            location: item.location || '',
+            date: getEventStartDate(item),
+            eventType: getEventCategory(item),
+            eventId: item.id,
             likeCount,
             dislikeCount,
         });
@@ -198,13 +266,14 @@ export default function Weekly() {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
             >
-                {/* HEADER */}
                 <View style={styles.header}>
                     <Text style={styles.headerKicker}>EVENTUP</Text>
                     <Text style={styles.headerTitle}>Weekly</Text>
+                    <Text style={styles.headerSubtitle}>
+                        Bewerte vergangene Events. Nach 7 Tagen verschwinden sie automatisch.
+                    </Text>
                 </View>
 
-                {/* FOTO DER WOCHE */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>Foto der Woche</Text>
@@ -245,12 +314,11 @@ export default function Weekly() {
                     </View>
                 </View>
 
-                {/* ABSTIMMUNGEN */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Abstimmungen</Text>
+                        <Text style={styles.sectionTitle}>Vergangene Events bewerten</Text>
                         <Text style={styles.sectionCount}>
-                            {votes.length} Vote{votes.length === 1 ? '' : 's'}
+                            {votes.length} Event{votes.length === 1 ? '' : 's'}
                         </Text>
                     </View>
 
@@ -263,11 +331,11 @@ export default function Weekly() {
                             />
 
                             <Text style={styles.emptyTitle}>
-                                Noch keine Abstimmungen
+                                Keine bewertbaren Events
                             </Text>
 
                             <Text style={styles.emptySubtitle}>
-                                Sobald neue Weekly-Votes erstellt werden, erscheinen sie hier.
+                                Sobald ein Event vorbei ist, erscheint es hier für 7 Tage.
                             </Text>
                         </View>
                     ) : (
@@ -278,136 +346,158 @@ export default function Weekly() {
 
                                 return (
                                     <View key={item.id} style={styles.voteCard}>
-                                        <View style={styles.voteIconCircle}>
-                                            <Ionicons
-                                                name="sparkles-outline"
-                                                size={18}
-                                                color="#00e5ff"
-                                            />
-                                        </View>
+                                        <Image
+                                            source={{ uri: getEventImage(item) }}
+                                            style={styles.voteImage}
+                                        />
 
-                                        <Text style={styles.voteTitle} numberOfLines={2}>
-                                            {item.title}
-                                        </Text>
+                                        <LinearGradient
+                                            colors={['transparent', 'rgba(0,0,0,0.8)']}
+                                            style={styles.voteImageGradient}
+                                        />
 
-                                        <View style={styles.locationRow}>
-                                            <Ionicons
-                                                name="location-outline"
-                                                size={13}
-                                                color="#00c6ff"
-                                            />
-
-                                            <Text style={styles.location} numberOfLines={1}>
-                                                {item.location || 'Kein Standort'}
+                                        <View style={styles.voteCategoryBadge}>
+                                            <Text style={styles.voteCategoryText}>
+                                                {getEventCategory(item)}
                                             </Text>
                                         </View>
 
-                                        <TouchableOpacity
-                                            style={styles.shareRow}
-                                            activeOpacity={0.85}
-                                            onPress={() => shareVote(item)}
-                                        >
-                                            <Ionicons
-                                                name="share-social-outline"
-                                                size={15}
-                                                color="#00c6ff"
-                                            />
-
-                                            <Text style={styles.shareText}>
-                                                Teilen
+                                        <View style={styles.voteCardContent}>
+                                            <Text style={styles.voteTitle} numberOfLines={2}>
+                                                {item.title}
                                             </Text>
-                                        </TouchableOpacity>
 
-                                        <View style={styles.progressContainer}>
-                                            <View style={styles.progressBackground}>
-                                                <LinearGradient
-                                                    colors={['#00c6ff', '#0072ff']}
-                                                    start={{ x: 0, y: 0 }}
-                                                    end={{ x: 1, y: 0 }}
-                                                    style={[
-                                                        styles.progressFill,
-                                                        { width: `${numbers.likePercent}%` },
-                                                    ]}
+                                            <View style={styles.locationRow}>
+                                                <Ionicons
+                                                    name="location-outline"
+                                                    size={13}
+                                                    color="#00c6ff"
                                                 />
+
+                                                <Text style={styles.location} numberOfLines={1}>
+                                                    {item.location || 'Kein Standort'}
+                                                </Text>
                                             </View>
 
-                                            <Text style={styles.progressText}>
-                                                {numbers.likePercent}% dafür · {numbers.dislikePercent}% dagegen
-                                            </Text>
-                                        </View>
+                                            <View style={styles.locationRow}>
+                                                <Ionicons
+                                                    name="calendar-outline"
+                                                    size={13}
+                                                    color="#00c6ff"
+                                                />
 
-                                        <View style={styles.voteRow}>
+                                                <Text style={styles.location} numberOfLines={1}>
+                                                    {getEventStartDate(item) || 'Kein Datum'}
+                                                </Text>
+                                            </View>
+
                                             <TouchableOpacity
+                                                style={styles.shareRow}
                                                 activeOpacity={0.85}
-                                                onPress={() => vote(item, 'like')}
+                                                onPress={() => shareVote(item)}
                                             >
-                                                {selectedVote === 'like' ? (
+                                                <Ionicons
+                                                    name="share-social-outline"
+                                                    size={15}
+                                                    color="#00c6ff"
+                                                />
+
+                                                <Text style={styles.shareText}>
+                                                    Teilen
+                                                </Text>
+                                            </TouchableOpacity>
+
+                                            <View style={styles.progressContainer}>
+                                                <View style={styles.progressBackground}>
                                                     <LinearGradient
                                                         colors={['#00c6ff', '#0072ff']}
                                                         start={{ x: 0, y: 0 }}
                                                         end={{ x: 1, y: 0 }}
-                                                        style={styles.voteButtonActive}
-                                                    >
-                                                        <Ionicons
-                                                            name="thumbs-up"
-                                                            size={18}
-                                                            color="#fff"
-                                                        />
+                                                        style={[
+                                                            styles.progressFill,
+                                                            { width: `${numbers.likePercent}%` },
+                                                        ]}
+                                                    />
+                                                </View>
 
-                                                        <Text style={styles.voteTextActive}>
-                                                            {numbers.likeCount}
-                                                        </Text>
-                                                    </LinearGradient>
-                                                ) : (
-                                                    <View style={styles.voteButton}>
-                                                        <Ionicons
-                                                            name="thumbs-up-outline"
-                                                            size={18}
-                                                            color="rgba(255,255,255,0.55)"
-                                                        />
+                                                <Text style={styles.progressText}>
+                                                    {numbers.likePercent}% gut · {numbers.dislikePercent}% nicht gut
+                                                </Text>
+                                            </View>
 
-                                                        <Text style={styles.voteText}>
-                                                            {numbers.likeCount}
-                                                        </Text>
-                                                    </View>
-                                                )}
-                                            </TouchableOpacity>
+                                            <View style={styles.voteRow}>
+                                                <TouchableOpacity
+                                                    activeOpacity={0.85}
+                                                    onPress={() => vote(item, 'like')}
+                                                >
+                                                    {selectedVote === 'like' ? (
+                                                        <LinearGradient
+                                                            colors={['#00c6ff', '#0072ff']}
+                                                            start={{ x: 0, y: 0 }}
+                                                            end={{ x: 1, y: 0 }}
+                                                            style={styles.voteButtonActive}
+                                                        >
+                                                            <Ionicons
+                                                                name="thumbs-up"
+                                                                size={18}
+                                                                color="#fff"
+                                                            />
 
-                                            <TouchableOpacity
-                                                activeOpacity={0.85}
-                                                onPress={() => vote(item, 'dislike')}
-                                            >
-                                                {selectedVote === 'dislike' ? (
-                                                    <LinearGradient
-                                                        colors={['#00c6ff', '#0072ff']}
-                                                        start={{ x: 0, y: 0 }}
-                                                        end={{ x: 1, y: 0 }}
-                                                        style={styles.voteButtonActive}
-                                                    >
-                                                        <Ionicons
-                                                            name="thumbs-down"
-                                                            size={18}
-                                                            color="#fff"
-                                                        />
+                                                            <Text style={styles.voteTextActive}>
+                                                                {numbers.likeCount}
+                                                            </Text>
+                                                        </LinearGradient>
+                                                    ) : (
+                                                        <View style={styles.voteButton}>
+                                                            <Ionicons
+                                                                name="thumbs-up-outline"
+                                                                size={18}
+                                                                color="rgba(255,255,255,0.55)"
+                                                            />
 
-                                                        <Text style={styles.voteTextActive}>
-                                                            {numbers.dislikeCount}
-                                                        </Text>
-                                                    </LinearGradient>
-                                                ) : (
-                                                    <View style={styles.voteButton}>
-                                                        <Ionicons
-                                                            name="thumbs-down-outline"
-                                                            size={18}
-                                                            color="rgba(255,255,255,0.55)"
-                                                        />
+                                                            <Text style={styles.voteText}>
+                                                                {numbers.likeCount}
+                                                            </Text>
+                                                        </View>
+                                                    )}
+                                                </TouchableOpacity>
 
-                                                        <Text style={styles.voteText}>
-                                                            {numbers.dislikeCount}
-                                                        </Text>
-                                                    </View>
-                                                )}
-                                            </TouchableOpacity>
+                                                <TouchableOpacity
+                                                    activeOpacity={0.85}
+                                                    onPress={() => vote(item, 'dislike')}
+                                                >
+                                                    {selectedVote === 'dislike' ? (
+                                                        <LinearGradient
+                                                            colors={['#00c6ff', '#0072ff']}
+                                                            start={{ x: 0, y: 0 }}
+                                                            end={{ x: 1, y: 0 }}
+                                                            style={styles.voteButtonActive}
+                                                        >
+                                                            <Ionicons
+                                                                name="thumbs-down"
+                                                                size={18}
+                                                                color="#fff"
+                                                            />
+
+                                                            <Text style={styles.voteTextActive}>
+                                                                {numbers.dislikeCount}
+                                                            </Text>
+                                                        </LinearGradient>
+                                                    ) : (
+                                                        <View style={styles.voteButton}>
+                                                            <Ionicons
+                                                                name="thumbs-down-outline"
+                                                                size={18}
+                                                                color="rgba(255,255,255,0.55)"
+                                                            />
+
+                                                            <Text style={styles.voteText}>
+                                                                {numbers.dislikeCount}
+                                                            </Text>
+                                                        </View>
+                                                    )}
+                                                </TouchableOpacity>
+                                            </View>
                                         </View>
                                     </View>
                                 );
@@ -431,8 +521,6 @@ const styles = StyleSheet.create({
         paddingTop: 62,
         paddingBottom: 120,
     },
-
-    // ── HEADER ──
 
     header: {
         paddingHorizontal: 20,
@@ -462,8 +550,6 @@ const styles = StyleSheet.create({
         lineHeight: 20,
     },
 
-    // ── SECTIONS ──
-
     section: {
         paddingHorizontal: 20,
         marginBottom: 30,
@@ -480,11 +566,13 @@ const styles = StyleSheet.create({
         fontSize: 21,
         fontWeight: '800',
         color: '#fff',
+        flex: 1,
     },
 
     sectionCount: {
         color: 'rgba(255,255,255,0.35)',
         fontSize: 13,
+        marginLeft: 10,
     },
 
     sectionAction: {
@@ -504,8 +592,6 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: '700',
     },
-
-    // ── PHOTO ──
 
     photoCard: {
         height: 220,
@@ -560,67 +646,79 @@ const styles = StyleSheet.create({
         fontWeight: '900',
     },
 
-    photoSubtitle: {
-        color: 'rgba(255,255,255,0.62)',
-        fontSize: 13,
-        marginTop: 4,
-    },
-
-    // ── VOTES ──
-
     grid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        gap: 12,
+        gap: 16,
     },
 
     voteCard: {
-        width: '48%',
+        borderRadius: 24,
+        overflow: 'hidden',
         backgroundColor: 'rgba(255,255,255,0.04)',
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.08)',
-        borderRadius: 22,
-        padding: 14,
         marginBottom: 2,
     },
 
-    voteIconCircle: {
-        width: 36,
-        height: 36,
-        borderRadius: 999,
-        backgroundColor: 'rgba(0,198,255,0.12)',
+    voteImage: {
+        width: '100%',
+        height: 155,
+        backgroundColor: 'rgba(255,255,255,0.06)',
+    },
+
+    voteImageGradient: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 155,
+    },
+
+    voteCategoryBadge: {
+        position: 'absolute',
+        top: 12,
+        left: 12,
+        backgroundColor: 'rgba(0,198,255,0.2)',
         borderWidth: 1,
-        borderColor: 'rgba(0,198,255,0.25)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 12,
+        borderColor: 'rgba(0,198,255,0.4)',
+        borderRadius: 999,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+    },
+
+    voteCategoryText: {
+        color: '#00e5ff',
+        fontSize: 11,
+        fontWeight: '800',
+    },
+
+    voteCardContent: {
+        padding: 15,
     },
 
     voteTitle: {
         fontWeight: '800',
-        fontSize: 15,
-        marginBottom: 8,
+        fontSize: 18,
+        marginBottom: 9,
         color: '#fff',
-        minHeight: 38,
     },
 
     locationRow: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 5,
-        marginBottom: 12,
+        marginBottom: 6,
     },
 
     location: {
         color: 'rgba(255,255,255,0.45)',
-        fontSize: 12,
+        fontSize: 13,
         flex: 1,
     },
 
     shareRow: {
         flexDirection: 'row',
         alignItems: 'center',
+        marginTop: 8,
         marginBottom: 14,
         gap: 6,
         alignSelf: 'flex-start',
@@ -637,11 +735,11 @@ const styles = StyleSheet.create({
     },
 
     progressBackground: {
-        height: 7,
+        height: 8,
         backgroundColor: 'rgba(255,255,255,0.08)',
         borderRadius: 999,
         overflow: 'hidden',
-        marginBottom: 6,
+        marginBottom: 7,
     },
 
     progressFill: {
@@ -651,54 +749,52 @@ const styles = StyleSheet.create({
 
     progressText: {
         color: 'rgba(255,255,255,0.35)',
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: '600',
     },
 
     voteRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        gap: 8,
+        gap: 10,
     },
 
     voteButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 5,
-        paddingVertical: 9,
-        paddingHorizontal: 10,
+        gap: 6,
+        paddingVertical: 10,
+        paddingHorizontal: 14,
         borderRadius: 999,
         backgroundColor: 'rgba(255,255,255,0.06)',
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
-        minWidth: 62,
+        minWidth: 86,
     },
 
     voteButtonActive: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 5,
-        paddingVertical: 9,
-        paddingHorizontal: 10,
+        gap: 6,
+        paddingVertical: 10,
+        paddingHorizontal: 14,
         borderRadius: 999,
-        minWidth: 62,
+        minWidth: 86,
     },
 
     voteText: {
         color: 'rgba(255,255,255,0.55)',
         fontWeight: '700',
-        fontSize: 12,
+        fontSize: 13,
     },
 
     voteTextActive: {
         color: '#fff',
         fontWeight: '800',
-        fontSize: 12,
+        fontSize: 13,
     },
-
-    // ── EMPTY ──
 
     emptyContainer: {
         alignItems: 'center',
