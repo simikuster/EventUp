@@ -19,9 +19,11 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { useEffect, useState } from 'react';
 
 import { db, auth } from '@/firebaseConfig';
-import { ref, onValue, set, remove } from 'firebase/database';
+import { ref, onValue, set, remove, get, update } from 'firebase/database';
 
 const fallbackImage = 'https://images.unsplash.com/photo-1506157786151-b8491531f063';
+
+const ADMIN_UID = '7VC5fSZ0k8R1Apv7HtKj2CKCfLb2';
 
 export default function Detail() {
 
@@ -46,6 +48,9 @@ export default function Detail() {
     } = useLocalSearchParams();
 
     const [isSaved, setIsSaved] = useState(false);
+
+    const user = auth.currentUser;
+    const isAdmin = user?.uid === ADMIN_UID;
 
     const eventId = id as string;
 
@@ -103,11 +108,11 @@ export default function Detail() {
         'Event';
 
     useEffect(() => {
-        const user = auth.currentUser;
+        const currentUser = auth.currentUser;
 
-        if (!user || !eventId) return;
+        if (!currentUser || !eventId) return;
 
-        const savedRef = ref(db, `saved/${user.uid}/${eventId}`);
+        const savedRef = ref(db, `saved/${currentUser.uid}/${eventId}`);
 
         const unsubscribe = onValue(savedRef, (snapshot) => {
             setIsSaved(snapshot.exists());
@@ -117,9 +122,9 @@ export default function Detail() {
     }, [eventId]);
 
     const toggleSaveEvent = async () => {
-        const user = auth.currentUser;
+        const currentUser = auth.currentUser;
 
-        if (!user) {
+        if (!currentUser) {
             Alert.alert(
                 'Nicht angemeldet',
                 'Du musst angemeldet sein, um Events zu speichern.'
@@ -135,7 +140,7 @@ export default function Detail() {
             return;
         }
 
-        const savedRef = ref(db, `saved/${user.uid}/${eventId}`);
+        const savedRef = ref(db, `saved/${currentUser.uid}/${eventId}`);
 
         if (isSaved) {
             await remove(savedRef);
@@ -198,6 +203,83 @@ export default function Detail() {
         Linking.openURL(mapUrl);
     };
 
+    const deleteEvent = async () => {
+        const currentUser = auth.currentUser;
+
+        if (!currentUser || currentUser.uid !== ADMIN_UID) {
+            Alert.alert(
+                'Keine Berechtigung',
+                'Nur der Admin darf Events löschen.'
+            );
+            return;
+        }
+
+        if (!eventId) {
+            Alert.alert(
+                'Fehler',
+                'Dieses Event kann nicht gelöscht werden, weil keine Event-ID vorhanden ist.'
+            );
+            return;
+        }
+
+        Alert.alert(
+            'Event löschen',
+            `Möchtest du "${eventTitle}" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`,
+            [
+                {
+                    text: 'Abbrechen',
+                    style: 'cancel',
+                },
+                {
+                    text: 'Löschen',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            const updates: Record<string, any> = {};
+
+                            updates[`events/${eventId}`] = null;
+                            updates[`weeklyVotes/${eventId}`] = null;
+
+                            const savedSnapshot = await get(ref(db, 'saved'));
+                            const savedData = savedSnapshot.val();
+
+                            if (savedData) {
+                                Object.keys(savedData).forEach((userId) => {
+                                    updates[`saved/${userId}/${eventId}`] = null;
+                                });
+                            }
+
+                            const weeklyUserVotesSnapshot = await get(ref(db, 'weeklyUserVotes'));
+                            const weeklyUserVotesData = weeklyUserVotesSnapshot.val();
+
+                            if (weeklyUserVotesData) {
+                                Object.keys(weeklyUserVotesData).forEach((userId) => {
+                                    updates[`weeklyUserVotes/${userId}/${eventId}`] = null;
+                                });
+                            }
+
+                            await update(ref(db), updates);
+
+                            Alert.alert(
+                                'Gelöscht',
+                                'Das Event wurde erfolgreich gelöscht.'
+                            );
+
+                            router.back();
+                        } catch (error) {
+                            console.log('Fehler beim Löschen:', error);
+
+                            Alert.alert(
+                                'Fehler',
+                                'Das Event konnte nicht gelöscht werden.'
+                            );
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
     return (
         <View style={styles.container}>
             <StatusBar barStyle="light-content" />
@@ -231,6 +313,16 @@ export default function Detail() {
                         </TouchableOpacity>
 
                         <View style={styles.topIcons}>
+                            {isAdmin ? (
+                                <TouchableOpacity
+                                    style={[styles.iconButton, styles.deleteIconButton]}
+                                    activeOpacity={0.85}
+                                    onPress={deleteEvent}
+                                >
+                                    <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
+                                </TouchableOpacity>
+                            ) : null}
+
                             <TouchableOpacity
                                 style={styles.iconButton}
                                 activeOpacity={0.85}
@@ -281,6 +373,33 @@ export default function Detail() {
 
                 {/* ── CONTENT ── */}
                 <View style={styles.content}>
+
+                    {/* ADMIN DELETE BUTTON */}
+                    {isAdmin ? (
+                        <TouchableOpacity
+                            style={styles.adminDeleteButton}
+                            activeOpacity={0.85}
+                            onPress={deleteEvent}
+                        >
+                            <Ionicons name="trash-outline" size={18} color="#FF6B6B" />
+
+                            <View style={styles.adminDeleteTextWrapper}>
+                                <Text style={styles.adminDeleteTitle}>
+                                    Event löschen
+                                </Text>
+
+                                <Text style={styles.adminDeleteSubtitle}>
+                                    Nur für Admin sichtbar
+                                </Text>
+                            </View>
+
+                            <Ionicons
+                                name="chevron-forward"
+                                size={18}
+                                color="rgba(255,255,255,0.35)"
+                            />
+                        </TouchableOpacity>
+                    ) : null}
 
                     {/* DATE / TIME ROW */}
                     <View style={styles.metaRow}>
@@ -512,6 +631,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
 
+    deleteIconButton: {
+        borderColor: 'rgba(255,107,107,0.35)',
+        backgroundColor: 'rgba(255,107,107,0.12)',
+    },
+
     heroContent: {
         position: 'absolute',
         bottom: 24,
@@ -559,6 +683,35 @@ const styles = StyleSheet.create({
     content: {
         paddingHorizontal: 20,
         paddingTop: 24,
+    },
+
+    // ── ADMIN ──
+    adminDeleteButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,107,107,0.10)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,107,107,0.28)',
+        borderRadius: 18,
+        padding: 14,
+        marginBottom: 18,
+        gap: 12,
+    },
+
+    adminDeleteTextWrapper: {
+        flex: 1,
+    },
+
+    adminDeleteTitle: {
+        color: '#FF6B6B',
+        fontSize: 15,
+        fontWeight: '800',
+    },
+
+    adminDeleteSubtitle: {
+        color: 'rgba(255,255,255,0.38)',
+        fontSize: 12,
+        marginTop: 2,
     },
 
     // ── META ROW ──
