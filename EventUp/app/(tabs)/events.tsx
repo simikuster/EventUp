@@ -208,6 +208,7 @@ export default function Events() {
             pathname: '/detail',
             params: {
                 title: item.title,
+                id: item.id,
                 image: getEventImage(item),
                 location: item.location,
                 date: getEventDate(item),

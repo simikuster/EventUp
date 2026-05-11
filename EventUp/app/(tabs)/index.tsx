@@ -11,34 +11,65 @@ import {
     Animated,
     TouchableOpacity,
     StatusBar,
+    Alert,
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRef, useEffect, useState } from 'react';
 
-import { db } from '@/firebaseConfig';
-import { ref, onValue } from 'firebase/database';
+import { db, auth } from '@/firebaseConfig';
+import { ref, onValue, set, remove } from 'firebase/database';
 import { router } from 'expo-router';
+
+const fallbackImage = 'https://images.unsplash.com/photo-1506157786151-b8491531f063';
 
 export default function Home() {
 
     const [events, setEvents] = useState<any[]>([]);
+    const [savedEvents, setSavedEvents] = useState<any>({});
     const [searchText, setSearchText] = useState('');
     const [activeCategory, setActiveCategory] = useState('Alle');
 
     useEffect(() => {
         const eventsRef = ref(db, 'events');
-        onValue(eventsRef, (snapshot) => {
+
+        const unsubscribe = onValue(eventsRef, (snapshot) => {
             const data = snapshot.val();
+
             if (data) {
                 const loadedEvents = Object.keys(data).map((key) => ({
                     id: key,
                     ...data[key],
                 }));
+
                 setEvents(loadedEvents);
+            } else {
+                setEvents([]);
             }
         });
+
+        return () => unsubscribe();
+    }, []);
+
+    useEffect(() => {
+        const user = auth.currentUser;
+
+        if (!user) return;
+
+        const savedRef = ref(db, `saved/${user.uid}`);
+
+        const unsubscribe = onValue(savedRef, (snapshot) => {
+            const data = snapshot.val();
+
+            if (data) {
+                setSavedEvents(data);
+            } else {
+                setSavedEvents({});
+            }
+        });
+
+        return () => unsubscribe();
     }, []);
 
     const scrollY = useRef(new Animated.Value(0)).current;
@@ -80,16 +111,104 @@ export default function Home() {
         Bildung: 'school-outline',
     };
 
+    const getEventImage = (event: any) => {
+        return event.image || event.imageUrl || fallbackImage;
+    };
+
+    const getEventDate = (event: any) => {
+        return event.date || event.startDate || '';
+    };
+
+    const getEventCategory = (event: any) => {
+        return event.category || event.eventType || 'Event';
+    };
+
+    const goToDetail = (item: any) => {
+        router.push({
+            pathname: '/detail',
+            params: {
+                id: item.id,
+                title: item.title,
+                image: getEventImage(item),
+                imageUrl: getEventImage(item),
+                location: item.location,
+                date: getEventDate(item),
+                startDate: item.startDate || item.date,
+                startTime: item.startTime,
+                endDate: item.endDate,
+                endTime: item.endTime,
+                description: item.description,
+                shortDescription: item.shortDescription,
+                organizerName: item.organizerName,
+                ticketInfo: item.ticketInfo,
+                ticketLink: item.ticketLink,
+                eventType: item.eventType || item.category,
+                category: item.category || item.eventType,
+            },
+        });
+    };
+
+    const toggleSaveEvent = async (item: any) => {
+        const user = auth.currentUser;
+
+        if (!user) {
+            Alert.alert(
+                'Nicht angemeldet',
+                'Du musst angemeldet sein, um Events zu speichern.'
+            );
+            return;
+        }
+
+        if (!item.id) {
+            Alert.alert(
+                'Fehler',
+                'Dieses Event kann nicht gespeichert werden, weil keine Event-ID vorhanden ist.'
+            );
+            return;
+        }
+
+        const savedRef = ref(db, `saved/${user.uid}/${item.id}`);
+
+        if (savedEvents[item.id]) {
+            await remove(savedRef);
+        } else {
+            await set(savedRef, {
+                title: item.title || '',
+                image: getEventImage(item),
+                imageUrl: getEventImage(item),
+                location: item.location || '',
+                date: getEventDate(item),
+                startDate: item.startDate || item.date || '',
+                startTime: item.startTime || '',
+                endDate: item.endDate || '',
+                endTime: item.endTime || '',
+                description: item.description || '',
+                shortDescription: item.shortDescription || '',
+                organizerName: item.organizerName || '',
+                ticketInfo: item.ticketInfo || '',
+                ticketLink: item.ticketLink || '',
+                eventType: getEventCategory(item),
+                category: getEventCategory(item),
+            });
+        }
+    };
+
     const filteredEvents = events.filter((event) => {
         const search = searchText.toLowerCase();
+
         const matchesSearch =
             event.title?.toLowerCase().includes(search) ||
             event.location?.toLowerCase().includes(search) ||
-            event.date?.toLowerCase().includes(search);
+            getEventDate(event).toLowerCase().includes(search) ||
+            getEventCategory(event).toLowerCase().includes(search);
+
         const matchesCategory =
-            activeCategory === 'Alle' || event.category === activeCategory;
+            activeCategory === 'Alle' || getEventCategory(event) === activeCategory;
+
         return matchesSearch && matchesCategory;
     });
+
+    const featuredEvent = events[0];
 
     return (
         <View style={styles.container}>
@@ -102,24 +221,28 @@ export default function Home() {
                     style={StyleSheet.absoluteFillObject}
                     resizeMode="cover"
                 />
+
                 <LinearGradient
                     colors={['rgba(0,0,0,0.15)', 'rgba(10,13,20,0.92)', '#0a0d14']}
                     style={StyleSheet.absoluteFillObject}
                 />
 
-                {/* MINI TITLE (beim Scrollen) */}
+                {/* MINI TITLE */}
                 <Animated.View style={[styles.miniHeader, { opacity: miniTitleOpacity }]}>
                     <Text style={styles.miniTitle}>
                         EVENT<Text style={{ color: '#00e5ff' }}>UP</Text>
                     </Text>
                 </Animated.View>
 
-                {/* FULL LOGO (oben) */}
+                {/* FULL LOGO */}
                 <Animated.View style={[styles.headerBottom, { opacity: logoOpacity }]}>
                     <Text style={styles.headerLogo}>
                         EVENT<Text style={{ color: '#00e5ff' }}>UP</Text>
                     </Text>
-                    <Text style={styles.headerTagline}>DA WO WAS LÄUFT</Text>
+
+                    <Text style={styles.headerTagline}>
+                        DA WO WAS LÄUFT
+                    </Text>
                 </Animated.View>
             </Animated.View>
 
@@ -134,12 +257,12 @@ export default function Home() {
                     { useNativeDriver: false }
                 )}
             >
-                {/* Spacer for header */}
                 <View style={{ height: 280 }} />
 
                 {/* 🔍 SEARCH */}
                 <View style={styles.searchWrapper}>
                     <Ionicons name="search" size={18} color="rgba(255,255,255,0.4)" />
+
                     <TextInput
                         placeholder="Nach Events suchen..."
                         placeholderTextColor="rgba(255,255,255,0.3)"
@@ -147,6 +270,7 @@ export default function Home() {
                         value={searchText}
                         onChangeText={setSearchText}
                     />
+
                     {searchText.length > 0 && (
                         <TouchableOpacity onPress={() => setSearchText('')}>
                             <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.4)" />
@@ -162,6 +286,7 @@ export default function Home() {
                 >
                     {categories.map((cat) => {
                         const isActive = activeCategory === cat;
+
                         return (
                             <TouchableOpacity
                                 key={cat}
@@ -180,8 +305,15 @@ export default function Home() {
                                     </LinearGradient>
                                 ) : (
                                     <View style={styles.categoryChipInactive}>
-                                        <Ionicons name={categoryIcons[cat]} size={15} color="rgba(255,255,255,0.5)" />
-                                        <Text style={styles.categoryChipText}>{cat}</Text>
+                                        <Ionicons
+                                            name={categoryIcons[cat]}
+                                            size={15}
+                                            color="rgba(255,255,255,0.5)"
+                                        />
+
+                                        <Text style={styles.categoryChipText}>
+                                            {cat}
+                                        </Text>
                                     </View>
                                 )}
                             </TouchableOpacity>
@@ -197,35 +329,73 @@ export default function Home() {
                     </TouchableOpacity>
                 </View>
 
-                <TouchableOpacity style={styles.featuredCard} activeOpacity={0.92}>
-                    <Image
-                        source={{ uri: 'https://images.unsplash.com/photo-1506157786151-b8491531f063' }}
-                        style={styles.featuredImage}
-                    />
-                    <LinearGradient
-                        colors={['transparent', 'rgba(0,0,0,0.8)']}
-                        style={styles.featuredGradient}
-                    />
+                {featuredEvent ? (
+                    <TouchableOpacity
+                        style={styles.featuredCard}
+                        activeOpacity={0.92}
+                        onPress={() => goToDetail(featuredEvent)}
+                    >
+                        <Image
+                            source={{ uri: getEventImage(featuredEvent) }}
+                            style={styles.featuredImage}
+                        />
 
-                    {/* BOOKMARK */}
-                    <TouchableOpacity style={styles.bookmarkBadge}>
-                        <Ionicons name="bookmark-outline" size={18} color="#fff" />
+                        <LinearGradient
+                            colors={['transparent', 'rgba(0,0,0,0.8)']}
+                            style={styles.featuredGradient}
+                        />
+
+                        {/* BOOKMARK */}
+                        <TouchableOpacity
+                            style={styles.bookmarkBadge}
+                            activeOpacity={0.85}
+                            onPress={(e) => {
+                                e.stopPropagation();
+                                toggleSaveEvent(featuredEvent);
+                            }}
+                        >
+                            <Ionicons
+                                name={savedEvents[featuredEvent.id] ? 'bookmark' : 'bookmark-outline'}
+                                size={18}
+                                color={savedEvents[featuredEvent.id] ? '#FFD700' : '#fff'}
+                            />
+                        </TouchableOpacity>
+
+                        <View style={styles.featuredContent}>
+                            <View style={styles.featuredBadge}>
+                                <Text style={styles.featuredBadgeText}>🔥 Top Pick</Text>
+                            </View>
+
+                            <Text style={styles.featuredTitle} numberOfLines={1}>
+                                {featuredEvent.title}
+                            </Text>
+
+                            <View style={styles.featuredMeta}>
+                                <Ionicons
+                                    name="location-outline"
+                                    size={13}
+                                    color="rgba(255,255,255,0.7)"
+                                />
+
+                                <Text style={styles.featuredMetaText} numberOfLines={1}>
+                                    {featuredEvent.location}
+                                </Text>
+
+                                <Text style={styles.featuredDot}>·</Text>
+
+                                <Ionicons
+                                    name="time-outline"
+                                    size={13}
+                                    color="rgba(255,255,255,0.7)"
+                                />
+
+                                <Text style={styles.featuredMetaText}>
+                                    {getEventDate(featuredEvent)}
+                                </Text>
+                            </View>
+                        </View>
                     </TouchableOpacity>
-
-                    <View style={styles.featuredContent}>
-                        <View style={styles.featuredBadge}>
-                            <Text style={styles.featuredBadgeText}>🔥 Top Pick</Text>
-                        </View>
-                        <Text style={styles.featuredTitle}>Sommernachtsfestival</Text>
-                        <View style={styles.featuredMeta}>
-                            <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.7)" />
-                            <Text style={styles.featuredMetaText}>Kirchplatz Andwil</Text>
-                            <Text style={styles.featuredDot}>·</Text>
-                            <Ionicons name="time-outline" size={13} color="rgba(255,255,255,0.7)" />
-                            <Text style={styles.featuredMetaText}>Sa, 27.06. / 20:00</Text>
-                        </View>
-                    </View>
-                </TouchableOpacity>
+                ) : null}
 
                 {/* 📋 EVENT LIST */}
                 <View style={styles.sectionHeader}>
@@ -244,41 +414,53 @@ export default function Home() {
                             key={item.id}
                             style={styles.card}
                             activeOpacity={0.9}
-                            onPress={() =>
-                                router.push({
-                                    pathname: '/detail',
-                                    params: {
-                                        title: item.title,
-                                        image: item.image || item.imageUrl,
-                                        location: item.location,
-                                        date: item.date || item.startDate,
-                                    },
-                                })
-                            }
+                            onPress={() => goToDetail(item)}
                         >
                             <Image
-                                source={{ uri: item.image || item.imageUrl }}
+                                source={{ uri: getEventImage(item) }}
                                 style={styles.cardImage}
                             />
+
                             <LinearGradient
                                 colors={['transparent', 'rgba(0,0,0,0.55)']}
                                 style={styles.cardImageGradient}
                             />
 
-                            <TouchableOpacity style={styles.cardBookmark}>
-                                <Ionicons name="bookmark-outline" size={17} color="#fff" />
+                            <TouchableOpacity
+                                style={styles.cardBookmark}
+                                activeOpacity={0.85}
+                                onPress={(e) => {
+                                    e.stopPropagation();
+                                    toggleSaveEvent(item);
+                                }}
+                            >
+                                <Ionicons
+                                    name={savedEvents[item.id] ? 'bookmark' : 'bookmark-outline'}
+                                    size={17}
+                                    color={savedEvents[item.id] ? '#FFD700' : '#fff'}
+                                />
                             </TouchableOpacity>
 
                             <View style={styles.cardContent}>
-                                <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
+                                <Text style={styles.cardTitle} numberOfLines={1}>
+                                    {item.title}
+                                </Text>
+
                                 <View style={styles.cardMeta}>
                                     <View style={styles.cardMetaItem}>
                                         <Ionicons name="location-outline" size={13} color="#00c6ff" />
-                                        <Text style={styles.cardMetaText} numberOfLines={1}>{item.location}</Text>
+
+                                        <Text style={styles.cardMetaText} numberOfLines={1}>
+                                            {item.location}
+                                        </Text>
                                     </View>
+
                                     <View style={styles.cardMetaItem}>
                                         <Ionicons name="time-outline" size={13} color="#00c6ff" />
-                                        <Text style={styles.cardMetaText}>{item.date || item.startDate}</Text>
+
+                                        <Text style={styles.cardMetaText}>
+                                            {getEventDate(item)}
+                                        </Text>
                                     </View>
                                 </View>
                             </View>
@@ -298,7 +480,6 @@ export default function Home() {
                     </LinearGradient>
                 </TouchableOpacity>
             </Animated.View>
-
         </View>
     );
 }
@@ -320,11 +501,13 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end',
         overflow: 'hidden',
     },
+
     miniHeader: {
         position: 'absolute',
         top: 54,
         alignSelf: 'center',
     },
+
     miniTitle: {
         fontSize: 20,
         fontWeight: '900',
@@ -332,10 +515,12 @@ const styles = StyleSheet.create({
         fontStyle: 'italic',
         letterSpacing: -0.5,
     },
+
     headerBottom: {
         paddingHorizontal: 24,
         paddingBottom: 28,
     },
+
     headerLogo: {
         fontSize: 42,
         fontWeight: '900',
@@ -344,6 +529,7 @@ const styles = StyleSheet.create({
         letterSpacing: -1,
         textTransform: 'uppercase',
     },
+
     headerTagline: {
         fontSize: 10,
         color: 'rgba(255,255,255,0.5)',
@@ -365,6 +551,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 14,
     },
+
     searchInput: {
         flex: 1,
         color: '#fff',
@@ -378,6 +565,7 @@ const styles = StyleSheet.create({
         gap: 10,
         marginBottom: 28,
     },
+
     categoryChip: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -386,6 +574,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         borderRadius: 999,
     },
+
     categoryChipInactive: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -397,11 +586,13 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
     },
+
     categoryChipTextActive: {
         color: '#fff',
         fontWeight: '700',
         fontSize: 13,
     },
+
     categoryChipText: {
         color: 'rgba(255,255,255,0.5)',
         fontWeight: '600',
@@ -416,16 +607,19 @@ const styles = StyleSheet.create({
         marginHorizontal: 20,
         marginBottom: 14,
     },
+
     sectionTitle: {
         fontSize: 20,
         fontWeight: '800',
         color: '#fff',
     },
+
     sectionLink: {
         fontSize: 13,
         color: '#00c6ff',
         fontWeight: '600',
     },
+
     sectionCount: {
         fontSize: 13,
         color: 'rgba(255,255,255,0.35)',
@@ -439,14 +633,17 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         height: 220,
     },
+
     featuredImage: {
         ...StyleSheet.absoluteFillObject,
         width: '100%',
         height: '100%',
     },
+
     featuredGradient: {
         ...StyleSheet.absoluteFillObject,
     },
+
     bookmarkBadge: {
         position: 'absolute',
         top: 14,
@@ -457,12 +654,14 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.15)',
     },
+
     featuredContent: {
         position: 'absolute',
         bottom: 18,
         left: 18,
         right: 18,
     },
+
     featuredBadge: {
         alignSelf: 'flex-start',
         backgroundColor: 'rgba(0,198,255,0.2)',
@@ -473,26 +672,32 @@ const styles = StyleSheet.create({
         paddingVertical: 4,
         marginBottom: 8,
     },
+
     featuredBadgeText: {
         color: '#00e5ff',
         fontSize: 11,
         fontWeight: '700',
     },
+
     featuredTitle: {
         color: '#fff',
         fontSize: 22,
         fontWeight: '800',
         marginBottom: 6,
     },
+
     featuredMeta: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
     },
+
     featuredMetaText: {
         color: 'rgba(255,255,255,0.7)',
         fontSize: 12,
+        maxWidth: 145,
     },
+
     featuredDot: {
         color: 'rgba(255,255,255,0.4)',
         marginHorizontal: 2,
@@ -508,10 +713,13 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.08)',
     },
+
     cardImage: {
         width: '100%',
         height: 170,
+        backgroundColor: 'rgba(255,255,255,0.06)',
     },
+
     cardImageGradient: {
         position: 'absolute',
         left: 0,
@@ -519,6 +727,7 @@ const styles = StyleSheet.create({
         top: 0,
         height: 170,
     },
+
     cardBookmark: {
         position: 'absolute',
         top: 12,
@@ -529,24 +738,30 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.15)',
     },
+
     cardContent: {
         padding: 14,
     },
+
     cardTitle: {
         fontSize: 17,
         fontWeight: '800',
         color: '#fff',
         marginBottom: 8,
     },
+
     cardMeta: {
         flexDirection: 'row',
         gap: 14,
     },
+
     cardMetaItem: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
+        flex: 1,
     },
+
     cardMetaText: {
         color: 'rgba(255,255,255,0.5)',
         fontSize: 13,
@@ -558,6 +773,7 @@ const styles = StyleSheet.create({
         paddingTop: 48,
         gap: 12,
     },
+
     emptyText: {
         color: 'rgba(255,255,255,0.25)',
         fontSize: 15,
@@ -569,6 +785,7 @@ const styles = StyleSheet.create({
         bottom: 110,
         right: 20,
     },
+
     fabInner: {
         width: 52,
         height: 52,

@@ -16,7 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
 
 import { db, auth } from '@/firebaseConfig';
-import { ref, onValue } from 'firebase/database';
+import { ref, onValue, remove } from 'firebase/database';
 import { router } from 'expo-router';
 
 const fallbackImage = 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30';
@@ -25,6 +25,7 @@ export default function Saved() {
 
     const [savedEvents, setSavedEvents] = useState<any[]>([]);
     const [activeFilter, setActiveFilter] = useState<'Heute' | 'Diese Woche' | 'Wochenende' | 'Alle'>('Alle');
+
     useEffect(() => {
         const user = auth.currentUser;
 
@@ -85,15 +86,58 @@ export default function Saved() {
         }
     };
 
+    const removeSavedEvent = async (item: any) => {
+        const user = auth.currentUser;
+
+        if (!user) {
+            Alert.alert(
+                'Nicht angemeldet',
+                'Du musst angemeldet sein, um gespeicherte Events zu entfernen.'
+            );
+            return;
+        }
+
+        if (!item.id) {
+            Alert.alert(
+                'Fehler',
+                'Dieses Event konnte nicht entfernt werden, weil keine Event-ID vorhanden ist.'
+            );
+            return;
+        }
+
+        const savedRef = ref(db, `saved/${user.uid}/${item.id}`);
+
+        try {
+            await remove(savedRef);
+        } catch (error) {
+            Alert.alert(
+                'Fehler',
+                'Das Event konnte nicht aus deinen Favoriten entfernt werden.'
+            );
+        }
+    };
+
     const goToDetail = (item: any) => {
         router.push({
             pathname: '/detail',
             params: {
+                id: item.id,
                 title: item.title,
                 image: getEventImage(item),
+                imageUrl: getEventImage(item),
                 location: item.location,
                 date: getEventDate(item),
+                startDate: getEventDate(item),
+                eventType: getEventCategory(item),
                 category: getEventCategory(item),
+                startTime: item.startTime || '',
+                endDate: item.endDate || '',
+                endTime: item.endTime || '',
+                description: item.description || '',
+                shortDescription: item.shortDescription || '',
+                organizerName: item.organizerName || '',
+                ticketInfo: item.ticketInfo || '',
+                ticketLink: item.ticketLink || '',
             },
         });
     };
@@ -110,7 +154,6 @@ export default function Saved() {
 
         const cleanDate = dateString.trim();
 
-        // Format: 2026-06-27
         const isoMatch = cleanDate.match(/^(\d{4})-(\d{2})-(\d{2})/);
         if (isoMatch) {
             const year = Number(isoMatch[1]);
@@ -120,7 +163,6 @@ export default function Saved() {
             return new Date(year, month, day);
         }
 
-        // Format: 27.06.2026 oder 27.06.
         const swissMatch = cleanDate.match(/(\d{1,2})\.(\d{1,2})\.?(\d{4})?/);
         if (swissMatch) {
             const day = Number(swissMatch[1]);
@@ -145,7 +187,6 @@ export default function Saved() {
         const today = startOfDay(new Date());
         const day = today.getDay();
 
-        // Montag als Wochenstart
         const diffToMonday = day === 0 ? -6 : 1 - day;
 
         const monday = new Date(today);
@@ -192,7 +233,7 @@ export default function Saved() {
         if (activeFilter === 'Alle') return true;
 
         const eventDate = parseEventDate(getEventDate(item));
-        if (!eventDate) return true;  // 👈 statt false → bei "Alle" trotzdem anzeigen
+        if (!eventDate) return true;
 
         if (activeFilter === 'Heute') return isToday(eventDate);
         if (activeFilter === 'Diese Woche') return isThisWeek(eventDate);
@@ -211,12 +252,13 @@ export default function Saved() {
                     <Text style={styles.headerKicker}>EVENTUP</Text>
                     <Text style={styles.title}>Meine Events</Text>
                 </View>
+
                 <View style={styles.headerIcon}>
                     <Ionicons name="bookmark" size={24} color="#00e5ff" />
                 </View>
             </View>
 
-            {/* FILTERS — fix, scrollt nicht mit */}
+            {/* FILTERS */}
             <View style={styles.filterWrapper}>
                 <ScrollView
                     horizontal
@@ -225,6 +267,7 @@ export default function Saved() {
                 >
                     {filters.map((filter) => {
                         const isActive = activeFilter === filter;
+
                         return (
                             <TouchableOpacity
                                 key={filter}
@@ -238,11 +281,15 @@ export default function Saved() {
                                         end={{ x: 1, y: 0 }}
                                         style={styles.activeFilter}
                                     >
-                                        <Text style={styles.activeFilterText}>{filter}</Text>
+                                        <Text style={styles.activeFilterText}>
+                                            {filter}
+                                        </Text>
                                     </LinearGradient>
                                 ) : (
                                     <View style={styles.filterButton}>
-                                        <Text style={styles.filterText}>{filter}</Text>
+                                        <Text style={styles.filterText}>
+                                            {filter}
+                                        </Text>
                                     </View>
                                 )}
                             </TouchableOpacity>
@@ -251,7 +298,7 @@ export default function Saved() {
                 </ScrollView>
             </View>
 
-            {/* EVENTS — nur dieser Teil scrollt */}
+            {/* EVENTS */}
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
@@ -259,9 +306,17 @@ export default function Saved() {
                 {filteredSavedEvents.length === 0 && (
                     <View style={styles.emptyContainer}>
                         <View style={styles.emptyIconCircle}>
-                            <Ionicons name="bookmark-outline" size={52} color="rgba(255,255,255,0.22)" />
+                            <Ionicons
+                                name="bookmark-outline"
+                                size={52}
+                                color="rgba(255,255,255,0.22)"
+                            />
                         </View>
-                        <Text style={styles.emptyTitle}>Noch nichts gespeichert</Text>
+
+                        <Text style={styles.emptyTitle}>
+                            Noch nichts gespeichert
+                        </Text>
+
                         <Text style={styles.emptySubtitle}>
                             Speichere Events, damit du sie später schneller wiederfindest.
                         </Text>
@@ -275,40 +330,86 @@ export default function Saved() {
                         activeOpacity={0.9}
                         onPress={() => goToDetail(item)}
                     >
-                        <Image source={{ uri: getEventImage(item) }} style={styles.image} />
+                        <Image
+                            source={{ uri: getEventImage(item) }}
+                            style={styles.image}
+                        />
+
                         <LinearGradient
                             colors={['transparent', 'rgba(0,0,0,0.65)']}
                             style={styles.imageGradient}
                         />
-                        <TouchableOpacity style={styles.bookmark} activeOpacity={0.85}>
-                            <Ionicons name="bookmark" size={19} color="#FFD700" />
+
+                        <TouchableOpacity
+                            style={styles.bookmark}
+                            activeOpacity={0.85}
+                            onPress={(e) => {
+                                e.stopPropagation();
+                                removeSavedEvent(item);
+                            }}
+                        >
+                            <Ionicons
+                                name="bookmark"
+                                size={19}
+                                color="#FFD700"
+                            />
                         </TouchableOpacity>
+
                         <View style={styles.categoryBadge}>
-                            <Text style={styles.categoryBadgeText}>{getEventCategory(item)}</Text>
+                            <Text style={styles.categoryBadgeText}>
+                                {getEventCategory(item)}
+                            </Text>
                         </View>
+
                         <View style={styles.cardContent}>
-                            <Text style={styles.eventTitle} numberOfLines={1}>{item.title}</Text>
+                            <Text style={styles.eventTitle} numberOfLines={1}>
+                                {item.title}
+                            </Text>
+
                             <View style={styles.infoContainer}>
                                 <View style={styles.infoRow}>
-                                    <Ionicons name="location-outline" size={13} color="#00c6ff" />
-                                    <Text style={styles.infoText} numberOfLines={1}>{item.location}</Text>
+                                    <Ionicons
+                                        name="location-outline"
+                                        size={13}
+                                        color="#00c6ff"
+                                    />
+
+                                    <Text style={styles.infoText} numberOfLines={1}>
+                                        {item.location}
+                                    </Text>
                                 </View>
+
                                 <View style={styles.infoRow}>
-                                    <Ionicons name="time-outline" size={13} color="#00c6ff" />
-                                    <Text style={styles.infoText}>{getEventDate(item)}</Text>
+                                    <Ionicons
+                                        name="time-outline"
+                                        size={13}
+                                        color="#00c6ff"
+                                    />
+
+                                    <Text style={styles.infoText}>
+                                        {getEventDate(item)}
+                                    </Text>
                                 </View>
                             </View>
-                           <TouchableOpacity
-                               style={styles.shareButton}
-                               activeOpacity={0.85}
-                               onPress={(e) => {
-                                   e.stopPropagation();
-                                   shareEvent(item);
-                               }}
-                           >
-                               <Ionicons name="share-social-outline" size={16} color="#00c6ff" />
-                               <Text style={styles.shareText}>Teilen</Text>
-                           </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.shareButton}
+                                activeOpacity={0.85}
+                                onPress={(e) => {
+                                    e.stopPropagation();
+                                    shareEvent(item);
+                                }}
+                            >
+                                <Ionicons
+                                    name="share-social-outline"
+                                    size={16}
+                                    color="#00c6ff"
+                                />
+
+                                <Text style={styles.shareText}>
+                                    Teilen
+                                </Text>
+                            </TouchableOpacity>
                         </View>
                     </TouchableOpacity>
                 ))}
@@ -370,6 +471,11 @@ const styles = StyleSheet.create({
     },
 
     // ── FILTERS ──
+
+    filterWrapper: {
+        height: 56,
+        marginBottom: 6,
+    },
 
     filterRow: {
         paddingHorizontal: 20,
@@ -556,9 +662,5 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: '#00c6ff',
         fontSize: 12,
-    },
-    filterWrapper: {
-        height: 56,
-        marginBottom: 6,
     },
 });
