@@ -104,6 +104,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         gap: 4,
         paddingTop: 6,
+        width: 90,  // 👈 das hinzufügen
     },
 
     // ── ICON WRAPPER ──
