@@ -12,11 +12,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 
 import { db } from '@/firebaseConfig';
-import { ref, onValue } from 'firebase/database';
+import { ref, onValue, set, remove } from 'firebase/database';
+import { router } from 'expo-router';
+import { auth } from '@/firebaseConfig';
 
 export default function Events() {
 
     const [events, setEvents] = useState<any[]>([]);
+    const [savedEvents, setSavedEvents] = useState<any>({});
 
     useEffect(() => {
 
@@ -38,6 +41,52 @@ export default function Events() {
         });
 
     }, []);
+
+    useEffect(() => {
+
+        const user = auth.currentUser;
+
+        if (!user) return;
+
+        const savedRef = ref(db, `saved/${user.uid}`);
+
+        onValue(savedRef, (snapshot) => {
+
+            const data = snapshot.val();
+
+            if (data) {
+                setSavedEvents(data);
+            } else {
+                setSavedEvents({});
+            }
+
+        });
+
+    }, []);
+    const toggleSaveEvent = async (item: any) => {
+
+        const user = auth.currentUser;
+
+        if (!user) return;
+
+        const savedRef = ref(db, `saved/${user.uid}/${item.id}`);
+
+        if (savedEvents[item.id]) {
+
+            await remove(savedRef);
+
+        } else {
+
+            await set(savedRef, {
+                title: item.title || '',
+                image: item.image || item.imageUrl || '',
+                location: item.location || '',
+                date: item.date || item.startDate || '',
+            });
+
+        }
+
+    };
 
     return (
         <View style={styles.container}>
@@ -87,8 +136,22 @@ export default function Events() {
 
                 {events.map((item) => (
 
-                    <View key={item.id} style={styles.card}>
-
+                    <TouchableOpacity
+                        key={item.id}
+                        style={styles.card}
+                        activeOpacity={0.9}
+                        onPress={() =>
+                            router.push({
+                                pathname: '/detail',
+                                params: {
+                                    title: item.title,
+                                    image: item.image,
+                                    location: item.location,
+                                    date: item.date,
+                                },
+                            })
+                        }
+                    >
                         {/* 📷 IMAGE */}
                         <Image
                             source={{ uri: item.image }}
@@ -96,12 +159,28 @@ export default function Events() {
                         />
 
                         {/* 🔖 BOOKMARK */}
-                        <TouchableOpacity style={styles.bookmarkButton}>
+                        <TouchableOpacity
+                            style={styles.bookmarkButton}
+                            onPress={(e) => {
+                                e.stopPropagation();
+                                toggleSaveEvent(item);
+                            }}
+                        >
+
                             <Ionicons
-                                name="bookmark-outline"
+                                name={
+                                    savedEvents[item.id]
+                                        ? "bookmark"
+                                        : "bookmark-outline"
+                                }
                                 size={28}
-                                color="#fff"
+                                color={
+                                    savedEvents[item.id]
+                                        ? "#FFD700"
+                                        : "#fff"
+                                }
                             />
+
                         </TouchableOpacity>
 
                         {/* 📄 CONTENT */}
@@ -150,8 +229,7 @@ export default function Events() {
 
                         </View>
 
-                    </View>
-
+                    </TouchableOpacity>
                 ))}
 
             </ScrollView>

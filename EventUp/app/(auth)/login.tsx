@@ -1,6 +1,7 @@
-// 🔥 LOGIN SCREEN
+// 🔥 LOGIN SCREEN — EventUp Style
 
-import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
@@ -10,7 +11,6 @@ import { db } from '@/firebaseConfig';
 
 export default function Login() {
     const router = useRouter();
-
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
@@ -18,13 +18,10 @@ export default function Login() {
         try {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
-
             const snapshot = await get(ref(db, 'users/' + user.uid));
-
             if (snapshot.exists()) {
                 console.log("👤 USER:", snapshot.val());
             }
-
             router.replace('/(tabs)');
         } catch (error: any) {
             alert("Login fehlgeschlagen");
@@ -33,60 +30,84 @@ export default function Login() {
 
     return (
         <View style={styles.container}>
+            <StatusBar barStyle="light-content" />
 
-            {/* 🔥 BACKGROUND BLOBS */}
-            <View style={styles.blob1} />
-            <View style={styles.blob2} />
+            {/* 🎨 HEADER GRADIENT */}
+            <LinearGradient
+                colors={['#00c6ff', '#0a7abf', '#0a0d14']}
+                start={{ x: 0.2, y: 0 }}
+                end={{ x: 0.8, y: 1 }}
+                style={styles.header}
+            >
+                <View style={styles.headerContent}>
+                    <Text style={styles.logo}>
+                        EVENT<Text style={styles.logoAccent}>UP</Text>
+                    </Text>
+                    <Text style={styles.tagline}>DA WO WAS LÄUFT</Text>
+                </View>
+            </LinearGradient>
 
-            {/* 🔥 CARD */}
+            {/* 📋 FORM CARD */}
             <View style={styles.card}>
 
-                <Text style={styles.title}>EventUp</Text>
-
-                <Text style={styles.subtitle}>
-                    Willkommen zurück 👋
-                </Text>
+                <Text style={styles.welcomeTitle}>Willkommen zurück 👋</Text>
+                <Text style={styles.welcomeSubtitle}>Melde dich an, um Events zu entdecken</Text>
 
                 {/* 📧 EMAIL */}
                 <View style={styles.formGroup}>
-                    <Text style={styles.label}>E-Mail</Text>
-
-                    <TextInput
-                        placeholder="dein@email.com"
-                        placeholderTextColor="rgba(255,255,255,0.45)"
-                        value={email}
-                        onChangeText={setEmail}
-                        style={styles.input}
-                    />
+                    <Text style={styles.label}>E-MAIL</Text>
+                    <View style={styles.inputWrapper}>
+                        <Text style={styles.inputIcon}>✉</Text>
+                        <TextInput
+                            placeholder="dein@email.com"
+                            placeholderTextColor="rgba(255,255,255,0.3)"
+                            value={email}
+                            onChangeText={setEmail}
+                            style={styles.input}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                        />
+                    </View>
                 </View>
 
-                {/* 🔒 PASSWORD */}
+                {/* 🔒 PASSWORT */}
                 <View style={styles.formGroup}>
-                    <Text style={styles.label}>Passwort</Text>
-
-                    <TextInput
-                        placeholder="••••••••"
-                        placeholderTextColor="rgba(255,255,255,0.45)"
-                        value={password}
-                        onChangeText={setPassword}
-                        secureTextEntry
-                        style={styles.input}
-                    />
+                    <Text style={styles.label}>PASSWORT</Text>
+                    <View style={styles.inputWrapper}>
+                        <Text style={styles.inputIcon}>🔒</Text>
+                        <TextInput
+                            placeholder="••••••••"
+                            placeholderTextColor="rgba(255,255,255,0.3)"
+                            value={password}
+                            onChangeText={setPassword}
+                            secureTextEntry
+                            style={styles.input}
+                        />
+                    </View>
                 </View>
 
-                {/* 🔘 BUTTON */}
-                <TouchableOpacity
-                    style={styles.button}
-                    onPress={handleLogin}
-                >
-                    <Text style={styles.buttonText}>
-                        Anmelden
-                    </Text>
+                {/* 🔘 LOGIN BUTTON */}
+                <TouchableOpacity onPress={handleLogin} activeOpacity={0.85}>
+                    <LinearGradient
+                        colors={['#00c6ff', '#0072ff']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.button}
+                    >
+                        <Text style={styles.buttonText}>Anmelden</Text>
+                    </LinearGradient>
                 </TouchableOpacity>
 
-                {/* 🔗 REGISTER */}
+                {/* ─── DIVIDER ─── */}
+                <View style={styles.divider}>
+                    <View style={styles.dividerLine} />
+                    <Text style={styles.dividerText}>oder</Text>
+                    <View style={styles.dividerLine} />
+                </View>
+
+                {/* 🔗 REGISTRIEREN */}
                 <Text style={styles.bottomText}>
-                    Noch kein Konto?{" "}
+                    Noch kein Konto?{' '}
                     <Text
                         style={styles.link}
                         onPress={() => router.push('/(auth)/register')}
@@ -103,105 +124,133 @@ export default function Login() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        justifyContent: 'center',
+        backgroundColor: '#0a0d14',
+    },
+
+    // ── HEADER ──
+    header: {
+        height: 240,
+        justifyContent: 'flex-end',
         alignItems: 'center',
-        backgroundColor: '#070b14',
-        padding: 24,
-        overflow: 'hidden',
+        paddingBottom: 32,
+    },
+    headerContent: {
+        alignItems: 'center',
+    },
+    logo: {
+        fontSize: 44,
+        fontWeight: '900',
+        color: '#fff',
+        letterSpacing: -1,
+        fontStyle: 'italic',
+        textTransform: 'uppercase',
+    },
+    logoAccent: {
+        color: '#00e5ff',
+    },
+    tagline: {
+        fontSize: 10,
+        color: 'rgba(255,255,255,0.55)',
+        letterSpacing: 4,
+        marginTop: 4,
     },
 
-    blob1: {
-        position: 'absolute',
-        width: 350,
-        height: 350,
-        borderRadius: 999,
-        backgroundColor: '#2563eb',
-        opacity: 0.25,
-        top: -120,
-        left: -120,
-    },
-
-    blob2: {
-        position: 'absolute',
-        width: 350,
-        height: 350,
-        borderRadius: 999,
-        backgroundColor: '#7c3aed',
-        opacity: 0.25,
-        bottom: -120,
-        right: -120,
-    },
-
+    // ── CARD ──
     card: {
-        width: '100%',
-        maxWidth: 420,
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
-        borderRadius: 28,
-        padding: 30,
+        flex: 1,
+        backgroundColor: '#0a0d14',
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
+        marginTop: -24,
+        paddingHorizontal: 28,
+        paddingTop: 36,
     },
 
-    title: {
-        fontSize: 36,
+    welcomeTitle: {
+        fontSize: 22,
         fontWeight: '700',
         color: '#fff',
-        textAlign: 'center',
-        marginBottom: 8,
+        marginBottom: 6,
+    },
+    welcomeSubtitle: {
+        fontSize: 14,
+        color: 'rgba(255,255,255,0.45)',
+        marginBottom: 32,
     },
 
-    subtitle: {
-        color: 'rgba(255,255,255,0.6)',
-        textAlign: 'center',
-        marginBottom: 30,
-        fontSize: 15,
-    },
-
+    // ── FORM ──
     formGroup: {
-        marginBottom: 18,
+        marginBottom: 20,
+    },
+    label: {
+        fontSize: 11,
+        color: 'rgba(255,255,255,0.45)',
+        letterSpacing: 1.5,
+        marginBottom: 10,
+        fontWeight: '600',
+    },
+    inputWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 16,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        gap: 12,
+    },
+    inputIcon: {
+        fontSize: 16,
+        opacity: 0.4,
+    },
+    input: {
+        flex: 1,
+        color: '#fff',
+        fontSize: 15,
+        padding: 0,
     },
 
-    label: {
-        color: 'rgba(255,255,255,0.75)',
-        marginBottom: 8,
+    // ── BUTTON ──
+    button: {
+        borderRadius: 16,
+        paddingVertical: 17,
+        alignItems: 'center',
+        marginTop: 8,
+        marginBottom: 28,
+    },
+    buttonText: {
+        color: '#fff',
+        fontWeight: '700',
+        fontSize: 15,
+        letterSpacing: 0.5,
+    },
+
+    // ── DIVIDER ──
+    divider: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 24,
+        gap: 12,
+    },
+    dividerLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: 'rgba(255,255,255,0.08)',
+    },
+    dividerText: {
+        color: 'rgba(255,255,255,0.3)',
         fontSize: 13,
     },
 
-    input: {
-        width: '100%',
-        padding: 15,
-        borderRadius: 14,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        color: '#fff',
-        fontSize: 15,
-    },
-
-    button: {
-        width: '100%',
-        padding: 16,
-        borderRadius: 14,
-        backgroundColor: '#3b82f6',
-        alignItems: 'center',
-        marginTop: 10,
-    },
-
-    buttonText: {
-        color: '#fff',
-        fontWeight: '600',
-        fontSize: 15,
-    },
-
+    // ── BOTTOM ──
     bottomText: {
         textAlign: 'center',
-        marginTop: 24,
-        color: 'rgba(255,255,255,0.5)',
+        color: 'rgba(255,255,255,0.4)',
         fontSize: 14,
     },
-
     link: {
-        color: '#60a5fa',
-        fontWeight: '600',
+        color: '#00c6ff',
+        fontWeight: '700',
     },
 });
