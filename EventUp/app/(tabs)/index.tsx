@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 
 export default function Home() {
     const [events, setEvents] = useState<any[]>([]);
+    const [searchText, setSearchText] = useState('');
     useEffect(() => {
         const eventsRef = ref(db, 'events');
 
@@ -62,51 +63,55 @@ export default function Home() {
         scrollRef.current?.scrollTo({ y: 0, animated: true });
     };
 
+    const filteredEvents = events.filter((event) => {
+        const search = searchText.toLowerCase();
+
+        return (
+            event.title?.toLowerCase().includes(search) ||
+            event.location?.toLowerCase().includes(search) ||
+            event.date?.toLowerCase().includes(search)
+        );
+    });
+
     return (
         <View style={styles.container}>
-
-            <Animated.View style={{ transform: [{ translateY: logoTranslateY }] }}>
-                <ImageBackground
-                    source={require('../../assets/images/logo.png')}
-                    style={styles.header}
-                    resizeMode="cover"
-                />
-            </Animated.View>
-
-            <Animated.View style={[
-                styles.searchWrapper,
-                {
-                    top: searchTop,
-                    transform: [{ scale: searchScale }],
-                    opacity: searchOpacity
-                }
-            ]}>
-                <View style={styles.searchBox}>
-                    <Ionicons name="search" size={20} color="#888" style={styles.icon} />
-                    <TextInput
-                        placeholder="Nach Events suchen"
-                        placeholderTextColor="#888"
-                        style={styles.input}
-                    />
-                </View>
-            </Animated.View>
-
-            <Animated.View style={[styles.topIcon, { opacity: iconOpacity }]}>
-                <TouchableOpacity style={styles.iconButton} onPress={scrollToTop}>
-                    <Ionicons name="search" size={20} color="#000" />
-                </TouchableOpacity>
-            </Animated.View>
-
             <Animated.ScrollView
                 ref={scrollRef}
                 style={styles.content}
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingTop: 110 }} // 🔥 FIX (kein grosser leerer Block mehr)
+                contentContainerStyle={{ paddingTop: 0 }}
                 onScroll={Animated.event(
                     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
                     { useNativeDriver: false }
                 )}
+                scrollEventThrottle={16}
             >
+                <Animated.View style={{ transform: [{ translateY: logoTranslateY }] }}>
+                    <ImageBackground
+                        source={require('../../assets/images/logo.png')}
+                        style={styles.header}
+                        resizeMode="cover"
+                    />
+                </Animated.View>
+
+                <Animated.View style={[
+                    styles.searchWrapper,
+                    {
+                        transform: [{ scale: searchScale }],
+                        opacity: searchOpacity
+                    }
+                ]}>
+                    <View style={styles.searchBox}>
+                        <Ionicons name="search" size={20} color="#888" style={styles.icon} />
+                        <TextInput
+                            placeholder="Nach Events suchen"
+                            placeholderTextColor="#888"
+                            style={styles.input}
+                            value={searchText}
+                            onChangeText={setSearchText}
+                        />
+                    </View>
+                </Animated.View>
 
                 <Text style={styles.sectionTitle}>Für Dich</Text>
 
@@ -144,7 +149,7 @@ export default function Home() {
 
                 <Text style={styles.sectionTitle}>Events Entdecken</Text>
 
-                {events.map((item) => (
+                {filteredEvents.map((item) => (
                     <View key={item.id} style={styles.card}>
                         <Image
                             source={{ uri: item.image }}
@@ -158,8 +163,13 @@ export default function Home() {
                         </View>
                     </View>
                 ))}
-
             </Animated.ScrollView>
+
+            <Animated.View style={[styles.topIcon, { opacity: iconOpacity }]}>
+                <TouchableOpacity style={styles.iconButton} onPress={scrollToTop}>
+                    <Ionicons name="search" size={20} color="#000" />
+                </TouchableOpacity>
+            </Animated.View>
         </View>
     );
 }
@@ -175,13 +185,13 @@ const styles = StyleSheet.create({
         width: '100%',
     },
 
-    searchWrapper: {
-        position: 'absolute',
-        top: 210,
-        width: '100%',
-        alignItems: 'center',
-        zIndex: 10,
-    },
+   searchWrapper: {
+       width: '100%',
+       alignItems: 'center',
+       marginTop: -30,
+       marginBottom: 20,
+       zIndex: 10,
+   },
 
     searchBox: {
         width: '85%',

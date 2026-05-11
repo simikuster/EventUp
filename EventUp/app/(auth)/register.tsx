@@ -1,3 +1,5 @@
+// 🔥 REGISTER SCREEN
+
 import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
@@ -19,12 +21,11 @@ export default function Register() {
 
             await set(ref(db, 'users/' + user.uid), {
                 email: email,
-                createdAt: new Date().toISOString()
+                createdAt: new Date().toISOString(),
             });
 
             alert("Account erstellt!");
 
-            // 🔥 WICHTIG → zurück zum Login
             router.replace('/(auth)/login');
 
         } catch (error: any) {
@@ -34,38 +35,67 @@ export default function Register() {
 
     return (
         <View style={styles.container}>
+
+            {/* 🔥 BACKGROUND BLOBS */}
+            <View style={styles.blob1} />
+            <View style={styles.blob2} />
+
+            {/* 🔥 CARD */}
             <View style={styles.card}>
 
-                <Text style={styles.title}>Create account</Text>
+                <Text style={styles.title}>EventUp</Text>
 
                 <Text style={styles.subtitle}>
-                    Hast du schon ein Konto?{" "}
-                    <Text style={styles.link} onPress={() => router.back()}>
-                        Login
-                    </Text>
+                    Erstelle deinen kostenlosen Account 🚀
                 </Text>
 
-                <Text style={styles.label}>Email</Text>
-                <TextInput
-                    placeholder="Email eingeben"
-                    placeholderTextColor="#6B7280"
-                    value={email}
-                    onChangeText={setEmail}
-                    style={styles.input}
-                />
+                {/* 📧 EMAIL */}
+                <View style={styles.formGroup}>
+                    <Text style={styles.label}>E-Mail</Text>
 
-                <TextInput
-                    placeholder="Passwort eingeben"
-                    placeholderTextColor="#6B7280"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry
-                    style={styles.input}
-                />
+                    <TextInput
+                        placeholder="dein@email.com"
+                        placeholderTextColor="rgba(255,255,255,0.45)"
+                        value={email}
+                        onChangeText={setEmail}
+                        style={styles.input}
+                    />
+                </View>
 
-                <TouchableOpacity style={styles.button} onPress={handleRegister}>
-                    <Text style={styles.buttonText}>Registrieren</Text>
+                {/* 🔒 PASSWORD */}
+                <View style={styles.formGroup}>
+                    <Text style={styles.label}>Passwort</Text>
+
+                    <TextInput
+                        placeholder="••••••••"
+                        placeholderTextColor="rgba(255,255,255,0.45)"
+                        value={password}
+                        onChangeText={setPassword}
+                        secureTextEntry
+                        style={styles.input}
+                    />
+                </View>
+
+                {/* 🔘 BUTTON */}
+                <TouchableOpacity
+                    style={styles.button}
+                    onPress={handleRegister}
+                >
+                    <Text style={styles.buttonText}>
+                        Account erstellen
+                    </Text>
                 </TouchableOpacity>
+
+                {/* 🔗 LOGIN */}
+                <Text style={styles.bottomText}>
+                    Bereits registriert?{" "}
+                    <Text
+                        style={styles.link}
+                        onPress={() => router.back()}
+                    >
+                        Zum Login
+                    </Text>
+                </Text>
 
             </View>
         </View>
@@ -75,52 +105,105 @@ export default function Register() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f4f6f8',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 20,
+        backgroundColor: '#070b14',
+        padding: 24,
+        overflow: 'hidden',
     },
+
+    blob1: {
+        position: 'absolute',
+        width: 350,
+        height: 350,
+        borderRadius: 999,
+        backgroundColor: '#2563eb',
+        opacity: 0.25,
+        top: -120,
+        left: -120,
+    },
+
+    blob2: {
+        position: 'absolute',
+        width: 350,
+        height: 350,
+        borderRadius: 999,
+        backgroundColor: '#7c3aed',
+        opacity: 0.25,
+        bottom: -120,
+        right: -120,
+    },
+
     card: {
         width: '100%',
-        maxWidth: 400,
-        backgroundColor: '#fff',
-        padding: 25,
-        borderRadius: 12,
-        elevation: 3,
-    },
-    title: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        marginBottom: 10,
-    },
-    subtitle: {
-        marginBottom: 20,
-        color: '#666',
-    },
-    label: {
-        marginBottom: 5,
-        fontWeight: '500',
-    },
-    input: {
+        maxWidth: 420,
+        backgroundColor: 'rgba(255,255,255,0.05)',
         borderWidth: 1,
-        borderColor: '#ddd',
-        padding: 12,
-        borderRadius: 8,
-        marginBottom: 15,
+        borderColor: 'rgba(255,255,255,0.08)',
+        borderRadius: 28,
+        padding: 30,
     },
+
+    title: {
+        fontSize: 36,
+        fontWeight: '700',
+        color: '#fff',
+        textAlign: 'center',
+        marginBottom: 8,
+    },
+
+    subtitle: {
+        color: 'rgba(255,255,255,0.6)',
+        textAlign: 'center',
+        marginBottom: 30,
+        fontSize: 15,
+    },
+
+    formGroup: {
+        marginBottom: 18,
+    },
+
+    label: {
+        color: 'rgba(255,255,255,0.75)',
+        marginBottom: 8,
+        fontSize: 13,
+    },
+
+    input: {
+        width: '100%',
+        padding: 15,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        color: '#fff',
+        fontSize: 15,
+    },
+
     button: {
-        backgroundColor: '#0f766e',
-        padding: 14,
-        borderRadius: 25,
+        width: '100%',
+        padding: 16,
+        borderRadius: 14,
+        backgroundColor: '#3b82f6',
         alignItems: 'center',
         marginTop: 10,
     },
+
     buttonText: {
         color: '#fff',
-        fontWeight: 'bold',
+        fontWeight: '600',
+        fontSize: 15,
     },
+
+    bottomText: {
+        textAlign: 'center',
+        marginTop: 24,
+        color: 'rgba(255,255,255,0.5)',
+        fontSize: 14,
+    },
+
     link: {
-        color: '#0f766e',
+        color: '#60a5fa',
         fontWeight: '600',
     },
 });
