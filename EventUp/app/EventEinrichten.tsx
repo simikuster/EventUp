@@ -12,10 +12,13 @@ import {
     Image,
     StatusBar,
 } from 'react-native';
+
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ref, push, set } from 'firebase/database';
 import * as ImagePicker from 'expo-image-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
+
 import { db } from '../firebaseConfig';
 
 const IMAGE_UPLOAD_URL = 'http://10.44.32.115:5000/api/images/upload';
@@ -28,6 +31,22 @@ type InputFieldProps = {
     multiline?: boolean;
     small?: boolean;
 };
+
+type PickerFieldProps = {
+    label: string;
+    value: string;
+    placeholder: string;
+    icon: keyof typeof Ionicons.glyphMap;
+    onPress: () => void;
+    small?: boolean;
+};
+
+type ActivePicker =
+    | 'startDate'
+    | 'startTime'
+    | 'endDate'
+    | 'endTime'
+    | null;
 
 function InputField({
     label,
@@ -58,6 +77,43 @@ function InputField({
     );
 }
 
+function PickerField({
+    label,
+    value,
+    placeholder,
+    icon,
+    onPress,
+    small = false,
+}: PickerFieldProps) {
+    return (
+        <View style={[styles.inputGroup, small && styles.smallInputGroup]}>
+            <Text style={styles.label}>{label}</Text>
+
+            <TouchableOpacity
+                style={[styles.pickerInput, small && styles.smallInput]}
+                activeOpacity={0.85}
+                onPress={onPress}
+            >
+                <Ionicons
+                    name={icon}
+                    size={16}
+                    color={value ? '#00e5ff' : 'rgba(255,255,255,0.32)'}
+                />
+
+                <Text
+                    style={[
+                        styles.pickerInputText,
+                        !value && styles.pickerPlaceholder,
+                    ]}
+                    numberOfLines={1}
+                >
+                    {value || placeholder}
+                </Text>
+            </TouchableOpacity>
+        </View>
+    );
+}
+
 export default function EventEinrichten() {
     const [location, setLocation] = useState('');
     const [title, setTitle] = useState('');
@@ -73,6 +129,55 @@ export default function EventEinrichten() {
     const [ticketLink, setTicketLink] = useState('');
     const [imageUri, setImageUri] = useState('');
     const [loading, setLoading] = useState(false);
+
+    const [activePicker, setActivePicker] = useState<ActivePicker>(null);
+
+    const formatDate = (date: Date) => {
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+
+        return `${day}.${month}.${year}`;
+    };
+
+    const formatTime = (date: Date) => {
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+
+        return `${hours}:${minutes}`;
+    };
+
+    const getPickerMode = () => {
+        if (activePicker === 'startDate' || activePicker === 'endDate') {
+            return 'date';
+        }
+
+        return 'time';
+    };
+
+    const handlePickerChange = (_event: any, selectedDate?: Date) => {
+        if (Platform.OS === 'android') {
+            setActivePicker(null);
+        }
+
+        if (!selectedDate || !activePicker) return;
+
+        if (activePicker === 'startDate') {
+            setStartDate(formatDate(selectedDate));
+        }
+
+        if (activePicker === 'startTime') {
+            setStartTime(formatTime(selectedDate));
+        }
+
+        if (activePicker === 'endDate') {
+            setEndDate(formatDate(selectedDate));
+        }
+
+        if (activePicker === 'endTime') {
+            setEndTime(formatTime(selectedDate));
+        }
+    };
 
     const chooseImageOption = () => {
         Alert.alert(
@@ -331,37 +436,41 @@ export default function EventEinrichten() {
                     />
 
                     <View style={styles.row}>
-                        <InputField
+                        <PickerField
                             label="Startdatum*"
-                            placeholder="TT.MM.JJJJ"
+                            placeholder="Datum auswählen"
                             value={startDate}
-                            onChangeText={setStartDate}
+                            icon="calendar-outline"
+                            onPress={() => setActivePicker('startDate')}
                             small
                         />
 
-                        <InputField
+                        <PickerField
                             label="Startzeit*"
-                            placeholder="00:00"
+                            placeholder="Zeit auswählen"
                             value={startTime}
-                            onChangeText={setStartTime}
+                            icon="time-outline"
+                            onPress={() => setActivePicker('startTime')}
                             small
                         />
                     </View>
 
                     <View style={styles.row}>
-                        <InputField
+                        <PickerField
                             label="Enddatum"
-                            placeholder="TT.MM.JJJJ"
+                            placeholder="Datum auswählen"
                             value={endDate}
-                            onChangeText={setEndDate}
+                            icon="calendar-outline"
+                            onPress={() => setActivePicker('endDate')}
                             small
                         />
 
-                        <InputField
+                        <PickerField
                             label="Endzeit"
-                            placeholder="00:00"
+                            placeholder="Zeit auswählen"
                             value={endTime}
-                            onChangeText={setEndTime}
+                            icon="time-outline"
+                            onPress={() => setActivePicker('endTime')}
                             small
                         />
                     </View>
@@ -477,6 +586,16 @@ export default function EventEinrichten() {
                     </LinearGradient>
                 </TouchableOpacity>
             </ScrollView>
+
+            {activePicker ? (
+                <DateTimePicker
+                    value={new Date()}
+                    mode={getPickerMode()}
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={handlePickerChange}
+                    is24Hour
+                />
+            ) : null}
         </KeyboardAvoidingView>
     );
 }
@@ -612,6 +731,30 @@ const styles = StyleSheet.create({
         paddingHorizontal: 13,
         fontSize: 13,
         color: '#fff',
+    },
+
+    pickerInput: {
+        minHeight: 46,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 15,
+        backgroundColor: 'rgba(255,255,255,0.06)',
+        paddingHorizontal: 13,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+
+    pickerInputText: {
+        color: '#fff',
+        fontSize: 13,
+        fontWeight: '600',
+        flex: 1,
+    },
+
+    pickerPlaceholder: {
+        color: 'rgba(255,255,255,0.28)',
+        fontWeight: '500',
     },
 
     smallInput: {
