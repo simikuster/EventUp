@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.08)',
         paddingBottom: 0,
-        paddingTop: 0,
+        paddingTop: 12,
 
         // Shadow iOS
         shadowColor: '#000',
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         gap: 4,
         paddingTop: 6,
-        width: 90,  // 👈 das hinzufügen
+        width: 90,
     },
 
     // ── ICON WRAPPER ──
