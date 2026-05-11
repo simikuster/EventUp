@@ -10,8 +10,10 @@ import {
     KeyboardAvoidingView,
     Platform,
     Image,
+    StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { ref, push, set } from 'firebase/database';
 import * as ImagePicker from 'expo-image-picker';
 import { db } from '../firebaseConfig';
@@ -46,7 +48,7 @@ function InputField({
                     small && styles.smallInput,
                 ]}
                 placeholder={placeholder}
-                placeholderTextColor="#9A9A9A"
+                placeholderTextColor="rgba(255,255,255,0.28)"
                 value={value}
                 onChangeText={onChangeText}
                 multiline={multiline}
@@ -258,21 +260,37 @@ export default function EventEinrichten() {
             style={styles.container}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
+            <StatusBar barStyle="light-content" />
+
             <ScrollView
                 style={styles.scroll}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
             >
+                <View style={styles.header}>
+                    <Text style={styles.headerKicker}>EVENTUP</Text>
+                    <Text style={styles.headerTitle}>Event einreichen</Text>
+                    <Text style={styles.headerSubtitle}>
+                        Erfasse dein Event. Pflichtfelder sind mit * markiert.
+                    </Text>
+                </View>
+
                 <View style={styles.infoBox}>
-                    <Ionicons name="information-circle-outline" size={20} color="#0077B6" />
+                    <View style={styles.infoIcon}>
+                        <Ionicons name="information-circle-outline" size={20} color="#00e5ff" />
+                    </View>
+
                     <Text style={styles.infoText}>
-                        Erfasse hier dein Event. Pflichtfelder sind mit * markiert.
+                        Dein Event wird zuerst geprüft und danach in der App angezeigt.
                     </Text>
                 </View>
 
                 <View style={styles.card}>
                     <View style={styles.cardHeader}>
-                        <Ionicons name="calendar-outline" size={20} color="#111" />
+                        <View style={styles.cardIcon}>
+                            <Ionicons name="calendar-outline" size={18} color="#00e5ff" />
+                        </View>
+
                         <Text style={styles.cardTitle}>Event Informationen</Text>
                     </View>
 
@@ -351,7 +369,10 @@ export default function EventEinrichten() {
 
                 <View style={styles.card}>
                     <View style={styles.cardHeader}>
-                        <Ionicons name="image-outline" size={20} color="#111" />
+                        <View style={styles.cardIcon}>
+                            <Ionicons name="image-outline" size={18} color="#00e5ff" />
+                        </View>
+
                         <Text style={styles.cardTitle}>Event Bild</Text>
                     </View>
 
@@ -370,8 +391,12 @@ export default function EventEinrichten() {
                             />
                         ) : (
                             <>
-                                <Ionicons name="cloud-upload-outline" size={28} color="#0077B6" />
+                                <View style={styles.uploadIcon}>
+                                    <Ionicons name="cloud-upload-outline" size={28} color="#00e5ff" />
+                                </View>
+
                                 <Text style={styles.uploadTitle}>Bild hinzufügen</Text>
+
                                 <Text style={styles.uploadHint}>
                                     Kamera öffnen oder Bild auswählen
                                 </Text>
@@ -387,7 +412,7 @@ export default function EventEinrichten() {
                                 activeOpacity={0.8}
                                 disabled={loading}
                             >
-                                <Ionicons name="image-outline" size={16} color="#0077B6" />
+                                <Ionicons name="image-outline" size={16} color="#00c6ff" />
                                 <Text style={styles.changeImageText}>Bild ändern</Text>
                             </TouchableOpacity>
 
@@ -397,7 +422,7 @@ export default function EventEinrichten() {
                                 activeOpacity={0.8}
                                 disabled={loading}
                             >
-                                <Ionicons name="trash-outline" size={16} color="#D62828" />
+                                <Ionicons name="trash-outline" size={16} color="#FF6B6B" />
                                 <Text style={styles.removeImageText}>Bild entfernen</Text>
                             </TouchableOpacity>
                         </View>
@@ -406,7 +431,10 @@ export default function EventEinrichten() {
 
                 <View style={styles.card}>
                     <View style={styles.cardHeader}>
-                        <Ionicons name="business-outline" size={20} color="#111" />
+                        <View style={styles.cardIcon}>
+                            <Ionicons name="business-outline" size={18} color="#00e5ff" />
+                        </View>
+
                         <Text style={styles.cardTitle}>Veranstalter</Text>
                     </View>
 
@@ -433,14 +461,20 @@ export default function EventEinrichten() {
                 </View>
 
                 <TouchableOpacity
-                    style={[styles.submitButton, loading && styles.submitButtonDisabled]}
                     activeOpacity={0.85}
                     onPress={saveEvent}
                     disabled={loading}
                 >
-                    <Text style={styles.submitButtonText}>
-                        {loading ? 'Wird gespeichert...' : 'Event einreichen'}
-                    </Text>
+                    <LinearGradient
+                        colors={['#00c6ff', '#0072ff']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+                    >
+                        <Text style={styles.submitButtonText}>
+                            {loading ? 'Wird gespeichert...' : 'Event einreichen'}
+                        </Text>
+                    </LinearGradient>
                 </TouchableOpacity>
             </ScrollView>
         </KeyboardAvoidingView>
@@ -450,7 +484,7 @@ export default function EventEinrichten() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F2F2F2',
+        backgroundColor: '#0a0d14',
     },
 
     scroll: {
@@ -458,59 +492,103 @@ const styles = StyleSheet.create({
     },
 
     scrollContent: {
-        paddingHorizontal: 14,
-        paddingTop: 16,
-        paddingBottom: 90,
+        paddingHorizontal: 20,
+        paddingTop: 62,
+        paddingBottom: 120,
+    },
+
+    header: {
+        marginBottom: 20,
+    },
+
+    headerKicker: {
+        color: '#00e5ff',
+        fontSize: 11,
+        fontWeight: '800',
+        letterSpacing: 3,
+        marginBottom: 6,
+    },
+
+    headerTitle: {
+        color: '#fff',
+        fontSize: 34,
+        fontWeight: '900',
+        letterSpacing: -1,
+    },
+
+    headerSubtitle: {
+        color: 'rgba(255,255,255,0.45)',
+        fontSize: 14,
+        marginTop: 5,
+        lineHeight: 20,
+        maxWidth: 320,
     },
 
     infoBox: {
-        backgroundColor: '#EAF7FF',
-        borderRadius: 14,
-        padding: 12,
+        backgroundColor: 'rgba(0,198,255,0.1)',
+        borderRadius: 20,
+        padding: 14,
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 14,
+        marginBottom: 16,
         borderWidth: 1,
-        borderColor: '#BDEBFF',
+        borderColor: 'rgba(0,198,255,0.24)',
+    },
+
+    infoIcon: {
+        width: 36,
+        height: 36,
+        borderRadius: 999,
+        backgroundColor: 'rgba(0,198,255,0.12)',
+        borderWidth: 1,
+        borderColor: 'rgba(0,198,255,0.24)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
     },
 
     infoText: {
         flex: 1,
-        marginLeft: 8,
-        fontSize: 12,
-        color: '#24566B',
-        lineHeight: 17,
+        fontSize: 13,
+        color: 'rgba(255,255,255,0.58)',
+        lineHeight: 18,
     },
 
     card: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 18,
-        padding: 14,
-        marginBottom: 14,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderRadius: 22,
+        padding: 15,
+        marginBottom: 16,
         borderWidth: 1,
-        borderColor: '#E4E4E4',
-        shadowColor: '#000',
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 4 },
-        elevation: 3,
+        borderColor: 'rgba(255,255,255,0.08)',
     },
 
     cardHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 14,
+        marginBottom: 15,
+    },
+
+    cardIcon: {
+        width: 36,
+        height: 36,
+        borderRadius: 999,
+        backgroundColor: 'rgba(0,198,255,0.12)',
+        borderWidth: 1,
+        borderColor: 'rgba(0,198,255,0.25)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
     },
 
     cardTitle: {
-        fontSize: 16,
+        fontSize: 17,
         fontWeight: '800',
-        color: '#111',
-        marginLeft: 8,
+        color: '#fff',
     },
 
     inputGroup: {
-        marginBottom: 12,
+        marginBottom: 13,
     },
 
     smallInputGroup: {
@@ -521,27 +599,27 @@ const styles = StyleSheet.create({
     label: {
         fontSize: 12,
         fontWeight: '700',
-        color: '#333',
-        marginBottom: 6,
+        color: 'rgba(255,255,255,0.7)',
+        marginBottom: 7,
     },
 
     input: {
-        minHeight: 44,
+        minHeight: 46,
         borderWidth: 1,
-        borderColor: '#9BE1FF',
-        borderRadius: 12,
-        backgroundColor: '#FAFAFA',
-        paddingHorizontal: 12,
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 15,
+        backgroundColor: 'rgba(255,255,255,0.06)',
+        paddingHorizontal: 13,
         fontSize: 13,
-        color: '#111',
+        color: '#fff',
     },
 
     smallInput: {
-        minHeight: 42,
+        minHeight: 44,
     },
 
     textArea: {
-        height: 105,
+        height: 108,
         paddingTop: 12,
         lineHeight: 18,
     },
@@ -549,16 +627,16 @@ const styles = StyleSheet.create({
     row: {
         flexDirection: 'row',
         gap: 10,
-        marginBottom: 12,
+        marginBottom: 13,
     },
 
     uploadBox: {
-        height: 155,
+        height: 165,
         borderWidth: 1.5,
-        borderColor: '#9BE1FF',
+        borderColor: 'rgba(0,198,255,0.32)',
         borderStyle: 'dashed',
-        borderRadius: 16,
-        backgroundColor: '#FAFDFF',
+        borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.04)',
         justifyContent: 'center',
         alignItems: 'center',
         marginTop: 2,
@@ -568,35 +646,46 @@ const styles = StyleSheet.create({
     previewImage: {
         width: '100%',
         height: '100%',
-        borderRadius: 16,
+        borderRadius: 20,
+    },
+
+    uploadIcon: {
+        width: 54,
+        height: 54,
+        borderRadius: 999,
+        backgroundColor: 'rgba(0,198,255,0.12)',
+        borderWidth: 1,
+        borderColor: 'rgba(0,198,255,0.24)',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 
     uploadTitle: {
-        marginTop: 8,
-        fontSize: 13,
+        marginTop: 10,
+        fontSize: 14,
         fontWeight: '800',
-        color: '#111',
+        color: '#fff',
     },
 
     uploadHint: {
-        marginTop: 3,
-        fontSize: 11,
-        color: '#777',
+        marginTop: 4,
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.35)',
     },
 
     imageActions: {
         flexDirection: 'row',
         gap: 10,
-        marginTop: 10,
+        marginTop: 11,
     },
 
     changeImageButton: {
         flex: 1,
-        minHeight: 40,
-        borderRadius: 12,
-        backgroundColor: '#EAF7FF',
+        minHeight: 42,
+        borderRadius: 15,
+        backgroundColor: 'rgba(0,198,255,0.12)',
         borderWidth: 1,
-        borderColor: '#BDEBFF',
+        borderColor: 'rgba(0,198,255,0.25)',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
@@ -606,16 +695,16 @@ const styles = StyleSheet.create({
         marginLeft: 6,
         fontSize: 12,
         fontWeight: '700',
-        color: '#0077B6',
+        color: '#00c6ff',
     },
 
     removeImageButton: {
         flex: 1,
-        minHeight: 40,
-        borderRadius: 12,
-        backgroundColor: '#FFF1F1',
+        minHeight: 42,
+        borderRadius: 15,
+        backgroundColor: 'rgba(255,107,107,0.1)',
         borderWidth: 1,
-        borderColor: '#FFD0D0',
+        borderColor: 'rgba(255,107,107,0.25)',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
@@ -625,21 +714,15 @@ const styles = StyleSheet.create({
         marginLeft: 6,
         fontSize: 12,
         fontWeight: '700',
-        color: '#D62828',
+        color: '#FF6B6B',
     },
 
     submitButton: {
-        backgroundColor: '#87CEEB',
-        paddingVertical: 15,
-        borderRadius: 24,
+        paddingVertical: 16,
+        borderRadius: 999,
         alignItems: 'center',
         marginTop: 4,
         marginBottom: 30,
-        shadowColor: '#000',
-        shadowOpacity: 0.12,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 4 },
-        elevation: 4,
     },
 
     submitButtonDisabled: {
