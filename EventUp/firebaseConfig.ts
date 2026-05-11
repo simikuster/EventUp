@@ -19,4 +19,4 @@ const app = initializeApp(firebaseConfig);
 
 // 🔥 Datenbank holen
 export const db = getDatabase(app);
-export const auth = getAuth(app); // 🔥 WICHTIG
+export const auth = getAuth(app);
