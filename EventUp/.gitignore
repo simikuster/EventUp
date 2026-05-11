@@ -41,3 +41,11 @@ app-example
 # generated native folders
 /ios
 /android
+package-lock.json
+Bildserver/package-lock.json
+Bildserver/uploads/
+Bildserver/node_modules/
+Bildserver/
+
+
+

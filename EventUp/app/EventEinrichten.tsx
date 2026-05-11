@@ -16,6 +16,8 @@ import { ref, push, set } from 'firebase/database';
 import * as ImagePicker from 'expo-image-picker';
 import { db } from '../firebaseConfig';
 
+const IMAGE_UPLOAD_URL = 'http://10.44.32.115:5000/api/images/upload';
+
 type InputFieldProps = {
     label: string;
     placeholder?: string;
@@ -140,6 +142,49 @@ export default function EventEinrichten() {
         setImageUri('');
     };
 
+    const uploadImageToNodeServer = async (uri: string) => {
+        if (uri.startsWith('http://') || uri.startsWith('https://')) {
+            return uri;
+        }
+
+        const fileName = uri.split('/').pop() || `event_${Date.now()}.jpg`;
+        const extension = fileName.split('.').pop()?.toLowerCase();
+
+        let mimeType = 'image/jpeg';
+
+        if (extension === 'png') {
+            mimeType = 'image/png';
+        } else if (extension === 'webp') {
+            mimeType = 'image/webp';
+        } else if (extension === 'jpg' || extension === 'jpeg') {
+            mimeType = 'image/jpeg';
+        }
+
+        const formData = new FormData();
+
+        formData.append('image', {
+            uri,
+            name: fileName,
+            type: mimeType,
+        } as any);
+
+        const response = await fetch(IMAGE_UPLOAD_URL, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+
+        const responseText = await response.text();
+
+        if (!response.ok) {
+            throw new Error(responseText || 'Bild konnte nicht hochgeladen werden.');
+        }
+
+        return responseText.trim();
+    };
+
     const saveEvent = async () => {
         if (!location || !title || !shortDescription || !eventType || !startDate || !startTime) {
             Alert.alert(
@@ -151,6 +196,13 @@ export default function EventEinrichten() {
 
         try {
             setLoading(true);
+
+            let uploadedImageUrl = '';
+
+            if (imageUri) {
+                uploadedImageUrl = await uploadImageToNodeServer(imageUri);
+                setImageUri(uploadedImageUrl);
+            }
 
             const eventsRef = ref(db, 'events');
             const newEventRef = push(eventsRef);
@@ -165,7 +217,7 @@ export default function EventEinrichten() {
                 startTime,
                 endDate,
                 endTime,
-                imageUrl: imageUri,
+                imageUrl: uploadedImageUrl,
                 organizerName,
                 ticketInfo,
                 ticketLink,
@@ -190,7 +242,12 @@ export default function EventEinrichten() {
             setImageUri('');
         } catch (error) {
             console.log('Fehler beim Speichern:', error);
-            Alert.alert('Fehler', 'Das Event konnte nicht gespeichert werden.');
+
+            if (error instanceof Error) {
+                Alert.alert('Fehler', error.message);
+            } else {
+                Alert.alert('Fehler', 'Das Event konnte nicht gespeichert werden.');
+            }
         } finally {
             setLoading(false);
         }
@@ -304,6 +361,7 @@ export default function EventEinrichten() {
                         style={styles.uploadBox}
                         activeOpacity={0.8}
                         onPress={chooseImageOption}
+                        disabled={loading}
                     >
                         {imageUri ? (
                             <Image
@@ -327,6 +385,7 @@ export default function EventEinrichten() {
                                 style={styles.changeImageButton}
                                 onPress={chooseImageOption}
                                 activeOpacity={0.8}
+                                disabled={loading}
                             >
                                 <Ionicons name="image-outline" size={16} color="#0077B6" />
                                 <Text style={styles.changeImageText}>Bild ändern</Text>
@@ -336,6 +395,7 @@ export default function EventEinrichten() {
                                 style={styles.removeImageButton}
                                 onPress={removeImage}
                                 activeOpacity={0.8}
+                                disabled={loading}
                             >
                                 <Ionicons name="trash-outline" size={16} color="#D62828" />
                                 <Text style={styles.removeImageText}>Bild entfernen</Text>
