@@ -2,20 +2,18 @@
 
 # 1. Allgemeine Angaben
 
-| Feld                                | Eintrag          |
-| ----------------------------------- | ---------------- |
-| Name / TN                           | DEIN NAME        |
-| Klasse / Gruppe                     | DEINE KLASSE     |
-| Projektname                         | EventUp          |
-| Datum                               | 12.05.2026       |
-| Lehrperson                          | LEHRPERSON       |
-| App-Version / Build                 | v1.0             |
-| Getestete Geräte                    | iPhone Simulator |
-| Getestete Plattform                 | iOS / Expo Go    |
-| Letzte Aktualisierung               | 12.05.2026       |
-| Ordner für Screenshots              | /screenshots     |
-| Link zum Repository / Projekt       | GitHub / Lokal   |
-| Abgabe mit Gesamtprojekt am Schluss | Ja               |
+| Feld                                | Eintrag           |
+| ----------------------------------- |-------------------|
+| Name / TN                           | DEIN NAME         |
+| Projektname                         | EventUp           |
+| Datum                               | 12.05.2026        |
+| Lehrperson                          | Michael Heinzmann |
+| App-Version / Build                 | v1.0              |
+| Getestete Plattform                 | iOS / Expo Go     |
+| Letzte Aktualisierung               | 12.05.2026        |
+| Ordner für Screenshots              | /screenshots      |
+| Link zum Repository / Projekt       | GitHub / Lokal    |
+| Abgabe mit Gesamtprojekt am Schluss | Ja                |
 
 ---
 

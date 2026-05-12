@@ -20,7 +20,7 @@ import { ref, push, set } from 'firebase/database';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-import { db } from '../firebaseConfig';
+import { db } from '@/firebaseConfig';
 
 const IMAGE_UPLOAD_URL = 'http://10.44.32.115:5000/api/images/upload';
 
