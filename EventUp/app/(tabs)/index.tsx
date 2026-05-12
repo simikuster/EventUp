@@ -10,6 +10,7 @@ import {
     TouchableOpacity,
     StatusBar,
     Alert,
+    useWindowDimensions,
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -25,6 +26,15 @@ import { isEventVisibleInNormalPages } from '@/utils/eventDateUtils';
 const fallbackImage = 'https://images.unsplash.com/photo-1506157786151-b8491531f063';
 
 export default function Home() {
+    const { width, height } = useWindowDimensions();
+
+    const isLandscape = width > height;
+    const isTablet = Math.min(width, height) >= 600;
+
+    const showHeaderImage = !isTablet;
+
+    const expandedHeaderHeight = isLandscape && !isTablet ? 220 : 280;
+    const headerSpacerHeight = expandedHeaderHeight;
 
     const [events, setEvents] = useState<any[]>([]);
     const [savedEvents, setSavedEvents] = useState<any>({});
@@ -77,7 +87,7 @@ export default function Home() {
 
     const headerHeight = scrollY.interpolate({
         inputRange: [0, 200],
-        outputRange: [280, 100],
+        outputRange: [expandedHeaderHeight, 100],
         extrapolate: 'clamp',
     });
 
@@ -232,11 +242,20 @@ export default function Home() {
             <StatusBar barStyle="light-content" />
 
             <Animated.View style={[styles.headerContainer, { height: headerHeight }]}>
-                <ImageBackground
-                    source={require('../../assets/images/logo.png')}
-                    style={StyleSheet.absoluteFillObject}
-                    resizeMode="cover"
-                />
+                {showHeaderImage ? (
+                    <ImageBackground
+                        source={require('../../assets/images/logo.png')}
+                        style={StyleSheet.absoluteFillObject}
+                        resizeMode="cover"
+                    />
+                ) : (
+                    <LinearGradient
+                        colors={['#122235', '#0b1624', '#0a0d14']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={StyleSheet.absoluteFillObject}
+                    />
+                )}
 
                 <LinearGradient
                     colors={['rgba(0,0,0,0.15)', 'rgba(10,13,20,0.92)', '#0a0d14']}
@@ -249,8 +268,14 @@ export default function Home() {
                     </Text>
                 </Animated.View>
 
-                <Animated.View style={[styles.headerBottom, { opacity: logoOpacity }]}>
-                    <Text style={styles.headerLogo}>
+                <Animated.View
+                    style={[
+                        styles.headerBottom,
+                        isTablet && styles.headerBottomTablet,
+                        { opacity: logoOpacity },
+                    ]}
+                >
+                    <Text style={[styles.headerLogo, isTablet && styles.headerLogoTablet]}>
                         EVENT<Text style={{ color: '#00e5ff' }}>UP</Text>
                     </Text>
 
@@ -270,7 +295,7 @@ export default function Home() {
                     { useNativeDriver: false }
                 )}
             >
-                <View style={{ height: 280 }} />
+                <View style={{ height: headerSpacerHeight }} />
 
                 <View style={styles.searchWrapper}>
                     <Ionicons name="search" size={18} color="rgba(255,255,255,0.4)" />
@@ -534,6 +559,11 @@ const styles = StyleSheet.create({
         paddingBottom: 28,
     },
 
+    headerBottomTablet: {
+        alignItems: 'center',
+        paddingBottom: 42,
+    },
+
     headerLogo: {
         fontSize: 42,
         fontWeight: '900',
@@ -541,6 +571,11 @@ const styles = StyleSheet.create({
         fontStyle: 'italic',
         letterSpacing: -1,
         textTransform: 'uppercase',
+    },
+
+    headerLogoTablet: {
+        fontSize: 52,
+        textAlign: 'center',
     },
 
     headerTagline: {
