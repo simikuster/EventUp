@@ -22,7 +22,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { db } from '@/firebaseConfig';
 
-const IMAGE_UPLOAD_URL = 'http://10.44.32.115:5000/api/images/upload';
+const IMAGE_UPLOAD_URL = 'http://10.44.32.107:5000/api/images/upload';
 
 type InputFieldProps = {
     label: string;
