@@ -366,9 +366,6 @@ export default function Home() {
 
                 <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>Für Dich</Text>
-                    <TouchableOpacity onPress={() => router.push('/(tabs)/events')}>
-                        <Text style={styles.sectionLink}>Alle sehen</Text>
-                    </TouchableOpacity>
                 </View>
 
                 {featuredEvent ? (
