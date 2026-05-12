@@ -42,7 +42,7 @@ export default function Settings() {
     };
 
     const goToEventCreate = () => {
-        router.push('/EventEinrichten');
+        router.push('/CreateEvent');
     };
 
     const createVote = () => {
