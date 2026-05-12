@@ -167,12 +167,6 @@ export default function TabLayout() {
 
     const isLandscape = width > height;
     const isTablet = Math.min(width, height) >= 600;
-
-    // Genau nach Wunsch:
-    // Handy Hochformat  -> unten
-    // Handy Querformat  -> links
-    // Tablet Hochformat -> unten
-    // Tablet Querformat -> links
     const sideNavigation = isLandscape;
     const isTabletLandscape = isTablet && isLandscape;
 

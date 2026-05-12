@@ -1,5 +1,3 @@
-// 🔥 DETAIL PAGE — EventUp Modern UI
-
 import {
     View,
     Text,

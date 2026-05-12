@@ -115,7 +115,7 @@ function PickerField({
     );
 }
 
-export default function EventEinrichten() {
+export default function CreateEvent() {
     const [location, setLocation] = useState('');
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');

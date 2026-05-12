@@ -1,5 +1,3 @@
-// 🔥 REGISTER SCREEN — EventUp Style
-
 import {
     View,
     Text,
@@ -276,7 +274,6 @@ const styles = StyleSheet.create({
         marginTop: 0,
         borderTopLeftRadius: 0,
         borderTopRightRadius: 0,
-        borderTopLeftRadius: 34,
         borderBottomLeftRadius: 34,
         justifyContent: 'center',
         paddingHorizontal: 34,
