@@ -11,6 +11,7 @@ import {
     Platform,
     Image,
     StatusBar,
+    Modal,
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -131,6 +132,7 @@ export default function EventEinrichten() {
     const [loading, setLoading] = useState(false);
 
     const [activePicker, setActivePicker] = useState<ActivePicker>(null);
+    const [pickerValue, setPickerValue] = useState(new Date());
 
     const formatDate = (date: Date) => {
         const day = String(date.getDate()).padStart(2, '0');
@@ -147,6 +149,70 @@ export default function EventEinrichten() {
         return `${hours}:${minutes}`;
     };
 
+    const parseDateValue = (value: string) => {
+        if (!value) return new Date();
+
+        const parts = value.split('.');
+
+        if (parts.length !== 3) return new Date();
+
+        const day = Number(parts[0]);
+        const month = Number(parts[1]) - 1;
+        const year = Number(parts[2]);
+
+        const parsedDate = new Date(year, month, day);
+
+        if (Number.isNaN(parsedDate.getTime())) {
+            return new Date();
+        }
+
+        return parsedDate;
+    };
+
+    const parseTimeValue = (value: string) => {
+        const now = new Date();
+
+        if (!value) return now;
+
+        const parts = value.split(':');
+
+        if (parts.length !== 2) return now;
+
+        const hours = Number(parts[0]);
+        const minutes = Number(parts[1]);
+
+        if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+            return now;
+        }
+
+        now.setHours(hours);
+        now.setMinutes(minutes);
+        now.setSeconds(0);
+        now.setMilliseconds(0);
+
+        return now;
+    };
+
+    const getInitialPickerValue = (picker: ActivePicker) => {
+        if (picker === 'startDate') return parseDateValue(startDate);
+        if (picker === 'endDate') return parseDateValue(endDate);
+        if (picker === 'startTime') return parseTimeValue(startTime);
+        if (picker === 'endTime') return parseTimeValue(endTime);
+
+        return new Date();
+    };
+
+    const openPicker = (picker: ActivePicker) => {
+        if (!picker) return;
+
+        setPickerValue(getInitialPickerValue(picker));
+        setActivePicker(picker);
+    };
+
+    const closePicker = () => {
+        setActivePicker(null);
+    };
+
     const getPickerMode = () => {
         if (activePicker === 'startDate' || activePicker === 'endDate') {
             return 'date';
@@ -155,28 +221,47 @@ export default function EventEinrichten() {
         return 'time';
     };
 
-    const handlePickerChange = (_event: any, selectedDate?: Date) => {
-        if (Platform.OS === 'android') {
-            setActivePicker(null);
-        }
+    const applyPickerValue = (picker: ActivePicker, selectedDate: Date) => {
+        if (!picker) return;
 
-        if (!selectedDate || !activePicker) return;
-
-        if (activePicker === 'startDate') {
+        if (picker === 'startDate') {
             setStartDate(formatDate(selectedDate));
         }
 
-        if (activePicker === 'startTime') {
+        if (picker === 'startTime') {
             setStartTime(formatTime(selectedDate));
         }
 
-        if (activePicker === 'endDate') {
+        if (picker === 'endDate') {
             setEndDate(formatDate(selectedDate));
         }
 
-        if (activePicker === 'endTime') {
+        if (picker === 'endTime') {
             setEndTime(formatTime(selectedDate));
         }
+    };
+
+    const handleAndroidPickerChange = (event: any, selectedDate?: Date) => {
+        if (event?.type === 'dismissed') {
+            closePicker();
+            return;
+        }
+
+        const dateToApply = selectedDate || pickerValue;
+
+        applyPickerValue(activePicker, dateToApply);
+        closePicker();
+    };
+
+    const handleIOSPickerChange = (_event: any, selectedDate?: Date) => {
+        if (selectedDate) {
+            setPickerValue(selectedDate);
+        }
+    };
+
+    const confirmIOSPicker = () => {
+        applyPickerValue(activePicker, pickerValue);
+        closePicker();
     };
 
     const chooseImageOption = () => {
@@ -371,6 +456,7 @@ export default function EventEinrichten() {
                 style={styles.scroll}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
+                keyboardShouldPersistTaps="handled"
             >
                 <View style={styles.header}>
                     <Text style={styles.headerKicker}>EVENTUP</Text>
@@ -441,7 +527,7 @@ export default function EventEinrichten() {
                             placeholder="Datum auswählen"
                             value={startDate}
                             icon="calendar-outline"
-                            onPress={() => setActivePicker('startDate')}
+                            onPress={() => openPicker('startDate')}
                             small
                         />
 
@@ -450,7 +536,7 @@ export default function EventEinrichten() {
                             placeholder="Zeit auswählen"
                             value={startTime}
                             icon="time-outline"
-                            onPress={() => setActivePicker('startTime')}
+                            onPress={() => openPicker('startTime')}
                             small
                         />
                     </View>
@@ -461,7 +547,7 @@ export default function EventEinrichten() {
                             placeholder="Datum auswählen"
                             value={endDate}
                             icon="calendar-outline"
-                            onPress={() => setActivePicker('endDate')}
+                            onPress={() => openPicker('endDate')}
                             small
                         />
 
@@ -470,7 +556,7 @@ export default function EventEinrichten() {
                             placeholder="Zeit auswählen"
                             value={endTime}
                             icon="time-outline"
-                            onPress={() => setActivePicker('endTime')}
+                            onPress={() => openPicker('endTime')}
                             small
                         />
                     </View>
@@ -587,12 +673,54 @@ export default function EventEinrichten() {
                 </TouchableOpacity>
             </ScrollView>
 
-            {activePicker ? (
+            {activePicker && Platform.OS === 'ios' ? (
+                <Modal
+                    transparent
+                    animationType="slide"
+                    visible={!!activePicker}
+                    onRequestClose={closePicker}
+                >
+                    <View style={styles.pickerModalOverlay}>
+                        <TouchableOpacity
+                            style={styles.pickerModalBackdrop}
+                            activeOpacity={1}
+                            onPress={closePicker}
+                        />
+
+                        <View style={styles.pickerModalContent}>
+                            <View style={styles.pickerModalHeader}>
+                                <TouchableOpacity onPress={closePicker}>
+                                    <Text style={styles.pickerCancelText}>Abbrechen</Text>
+                                </TouchableOpacity>
+
+                                <Text style={styles.pickerModalTitle}>
+                                    {getPickerMode() === 'date' ? 'Datum auswählen' : 'Zeit auswählen'}
+                                </Text>
+
+                                <TouchableOpacity onPress={confirmIOSPicker}>
+                                    <Text style={styles.pickerConfirmText}>Übernehmen</Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            <DateTimePicker
+                                value={pickerValue}
+                                mode={getPickerMode()}
+                                display="spinner"
+                                onChange={handleIOSPickerChange}
+                                is24Hour
+                                textColor="#fff"
+                            />
+                        </View>
+                    </View>
+                </Modal>
+            ) : null}
+
+            {activePicker && Platform.OS !== 'ios' ? (
                 <DateTimePicker
-                    value={new Date()}
+                    value={pickerValue}
                     mode={getPickerMode()}
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    onChange={handlePickerChange}
+                    display="default"
+                    onChange={handleAndroidPickerChange}
                     is24Hour
                 />
             ) : null}
@@ -875,6 +1003,54 @@ const styles = StyleSheet.create({
     submitButtonText: {
         color: '#FFFFFF',
         fontSize: 15,
+        fontWeight: '800',
+    },
+
+    pickerModalOverlay: {
+        flex: 1,
+        justifyContent: 'flex-end',
+        backgroundColor: 'rgba(0,0,0,0.45)',
+    },
+
+    pickerModalBackdrop: {
+        ...StyleSheet.absoluteFillObject,
+    },
+
+    pickerModalContent: {
+        backgroundColor: '#111827',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        paddingBottom: 28,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+    },
+
+    pickerModalHeader: {
+        minHeight: 54,
+        paddingHorizontal: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,255,255,0.08)',
+    },
+
+    pickerModalTitle: {
+        color: '#fff',
+        fontSize: 15,
+        fontWeight: '800',
+    },
+
+    pickerCancelText: {
+        color: 'rgba(255,255,255,0.55)',
+        fontSize: 14,
+        fontWeight: '700',
+    },
+
+    pickerConfirmText: {
+        color: '#00c6ff',
+        fontSize: 14,
         fontWeight: '800',
     },
 });
